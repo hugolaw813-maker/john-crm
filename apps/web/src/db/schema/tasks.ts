@@ -7,6 +7,7 @@ export const tasks = pgTable("tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   content: text("content").notNull(),
   deadline: timestamp("deadline"),
+  priority: text("priority").notNull().default("medium"),
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at"),
   workspaceId: text("workspace_id")

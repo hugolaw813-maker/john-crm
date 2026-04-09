@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
   try {
     const task = await createTask(body.content as string, ctx.userId, ctx.workspaceId, {
       deadline: body.deadline as string | undefined,
+      priority: body.priority as string | undefined,
       recordIds: body.recordIds as string[] | undefined,
       assigneeIds: body.assigneeIds as string[] | undefined,
     });

@@ -12,6 +12,7 @@ export interface TaskData {
   id: string;
   content: string;
   deadline: Date | null;
+  priority: string;
   isCompleted: boolean;
   completedAt: Date | null;
   createdBy: string | null;
@@ -74,6 +75,7 @@ async function enrichTasks(
     id: t.id,
     content: t.content,
     deadline: t.deadline,
+    priority: t.priority,
     isCompleted: t.isCompleted,
     completedAt: t.completedAt,
     createdBy: t.createdBy,
@@ -143,6 +145,7 @@ export async function createTask(
   workspaceId: string,
   options: {
     deadline?: string | null;
+    priority?: string;
     recordIds?: string[];
     assigneeIds?: string[];
   } = {}
@@ -154,6 +157,7 @@ export async function createTask(
       createdBy,
       workspaceId,
       deadline: options.deadline ? new Date(options.deadline) : null,
+      priority: options.priority || "medium",
     })
     .returning();
 
@@ -186,6 +190,7 @@ export async function updateTask(
   updates: {
     content?: string;
     deadline?: string | null;
+    priority?: string;
     isCompleted?: boolean;
     recordIds?: string[];
     assigneeIds?: string[];
@@ -204,6 +209,9 @@ export async function updateTask(
   if (updates.content !== undefined) setValues.content = updates.content;
   if (updates.deadline !== undefined) {
     setValues.deadline = updates.deadline ? new Date(updates.deadline) : null;
+  }
+  if (updates.priority !== undefined) {
+    setValues.priority = updates.priority;
   }
   if (updates.isCompleted !== undefined) {
     setValues.isCompleted = updates.isCompleted;

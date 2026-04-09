@@ -33,6 +33,7 @@ interface Task {
   id: string;
   content: string;
   deadline: string | null;
+  priority: string;
   isCompleted: boolean;
   completedAt: string | null;
   createdBy: string | null;
@@ -215,6 +216,7 @@ export function TaskList() {
   async function handleSave(data: {
     content: string;
     deadline: string | null;
+    priority: string;
     recordIds: string[];
     assigneeIds: string[];
   }) {
@@ -305,9 +307,10 @@ export function TaskList() {
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_120px_150px_120px] gap-2 border-b border-border px-4 py-1.5 text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-[1fr_120px_120px_150px_120px] gap-2 border-b border-border px-4 py-1.5 text-xs font-medium text-muted-foreground">
         <span>Task</span>
         <span>Due date</span>
+        <span>Status</span>
         <span>Person</span>
         <span>Assigned to</span>
       </div>
@@ -395,6 +398,7 @@ export function TaskList() {
                   ? new Date(editingTask.deadline)
                   : null,
                 assigneeIds: editingTask.assignees.map((a) => a.id),
+                priority: editingTask.priority,
                 recordIds: editingTask.linkedRecords.map((r) => r.id),
                 linkedRecords: editingTask.linkedRecords,
                 assignees: editingTask.assignees,
@@ -427,9 +431,16 @@ function TaskRow({
   );
   const displayRecords = linkedPeople.length > 0 ? linkedPeople : task.linkedRecords;
 
+  const priorityClass =
+    task.priority === "high"
+      ? "bg-red-500/15 text-red-400 border-red-500/30"
+      : task.priority === "low"
+        ? "bg-slate-500/15 text-slate-300 border-slate-500/30"
+        : "bg-amber-500/15 text-amber-300 border-amber-500/30";
+
   return (
     <div
-      className="group grid grid-cols-[1fr_120px_150px_120px] gap-2 items-center border-b border-border/30 px-4 py-2 hover:bg-muted/20 cursor-pointer"
+      className="group grid grid-cols-[1fr_120px_120px_150px_120px] gap-2 items-center border-b border-border/30 px-4 py-2 hover:bg-muted/20 cursor-pointer"
       onClick={onClick}
     >
       {/* Task column */}
@@ -472,6 +483,13 @@ function TaskRow({
             {dateInfo.label}
           </span>
         )}
+      </div>
+
+      {/* Status column */}
+      <div>
+        <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-xs font-medium", priorityClass)}>
+          {task.priority === "high" ? "High" : task.priority === "low" ? "Low" : "Medium"}
+        </span>
       </div>
 
       {/* Person column */}

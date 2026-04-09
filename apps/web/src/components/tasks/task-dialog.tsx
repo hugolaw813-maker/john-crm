@@ -20,6 +20,7 @@ import {
   Search,
   Check,
   Building2,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +39,7 @@ interface TaskFormData {
   id?: string;
   content: string;
   deadline: Date | null;
+  priority: string;
   assigneeIds: string[];
   recordIds: string[];
   linkedRecords?: { id: string; displayName: string; objectSlug: string }[];
@@ -72,6 +74,7 @@ interface TaskDialogProps {
   onSave: (data: {
     content: string;
     deadline: string | null;
+    priority: string;
     recordIds: string[];
     assigneeIds: string[];
   }) => Promise<void>;
@@ -94,6 +97,7 @@ export function TaskDialog({
 }: TaskDialogProps) {
   const [content, setContent] = useState("");
   const [deadline, setDeadline] = useState<Date | null>(null);
+  const [priority, setPriority] = useState("medium");
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [linkedRecords, setLinkedRecords] = useState<
     { id: string; displayName: string; objectSlug: string }[]
@@ -103,6 +107,7 @@ export function TaskDialog({
 
   // Pickers open state
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [priorityPickerOpen, setPriorityPickerOpen] = useState(false);
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false);
   const [recordPickerOpen, setRecordPickerOpen] = useState(false);
 
@@ -116,6 +121,7 @@ export function TaskDialog({
   const contentRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const priorityPickerRef = useRef<HTMLDivElement>(null);
   const assigneePickerRef = useRef<HTMLDivElement>(null);
   const recordPickerRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +132,9 @@ export function TaskDialog({
       if (datePickerOpen && datePickerRef.current && !datePickerRef.current.contains(target)) {
         setDatePickerOpen(false);
       }
+      if (priorityPickerOpen && priorityPickerRef.current && !priorityPickerRef.current.contains(target)) {
+        setPriorityPickerOpen(false);
+      }
       if (assigneePickerOpen && assigneePickerRef.current && !assigneePickerRef.current.contains(target)) {
         setAssigneePickerOpen(false);
       }
@@ -135,7 +144,7 @@ export function TaskDialog({
     }
     document.addEventListener("mousedown", handleMouseDown);
     return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [datePickerOpen, assigneePickerOpen, recordPickerOpen]);
+  }, [datePickerOpen, priorityPickerOpen, assigneePickerOpen, recordPickerOpen]);
 
   // Initialize form data
   useEffect(() => {
@@ -143,11 +152,13 @@ export function TaskDialog({
       if (mode === "edit" && initialData) {
         setContent(initialData.content);
         setDeadline(initialData.deadline);
+        setPriority(initialData.priority || "medium");
         setAssigneeIds(initialData.assigneeIds);
         setLinkedRecords(initialData.linkedRecords || []);
       } else {
         setContent("");
         setDeadline(null);
+        setPriority("medium");
         setAssigneeIds(currentUserId ? [currentUserId] : []);
         setLinkedRecords(
           defaultRecordId && defaultRecordName
@@ -162,6 +173,7 @@ export function TaskDialog({
         );
       }
       setDatePickerOpen(false);
+      setPriorityPickerOpen(false);
       setAssigneePickerOpen(false);
       setRecordPickerOpen(false);
       setMemberSearch("");
@@ -277,12 +289,14 @@ export function TaskDialog({
       await onSave({
         content: content.trim(),
         deadline: deadline ? deadline.toISOString().split("T")[0] : null,
+        priority,
         recordIds: linkedRecords.map((r) => r.id),
         assigneeIds,
       });
       if (createMore && mode === "create") {
         setContent("");
         setDeadline(null);
+        setPriority("medium");
         setLinkedRecords(
           defaultRecordId && defaultRecordName
             ? [
@@ -335,6 +349,12 @@ export function TaskDialog({
     if (isToday(deadline)) return "Today";
     if (isTomorrow(deadline)) return "Tomorrow";
     return format(deadline, "MMM d");
+  }
+
+  function getPriorityLabel(): string {
+    if (priority === "high") return "High";
+    if (priority === "low") return "Low";
+    return "Medium";
   }
 
   function addRecord(record: SearchResult) {
@@ -422,6 +442,7 @@ export function TaskDialog({
                 )}
                 onClick={() => {
                   setDatePickerOpen(!datePickerOpen);
+                  setPriorityPickerOpen(false);
                   setAssigneePickerOpen(false);
                   setRecordPickerOpen(false);
                 }}
@@ -478,6 +499,47 @@ export function TaskDialog({
               )}
             </div>
 
+            {/* Priority picker */}
+            <div className="relative" ref={priorityPickerRef}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("text-xs gap-1.5", "text-foreground")}
+                onClick={() => {
+                  setPriorityPickerOpen(!priorityPickerOpen);
+                  setDatePickerOpen(false);
+                  setAssigneePickerOpen(false);
+                  setRecordPickerOpen(false);
+                }}
+              >
+                <Flag className="h-3.5 w-3.5" />
+                {getPriorityLabel()}
+              </Button>
+              {priorityPickerOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 w-36 rounded-lg border border-border bg-popover shadow-lg p-1">
+                  {[
+                    { value: "high", label: "High" },
+                    { value: "medium", label: "Medium" },
+                    { value: "low", label: "Low" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setPriority(option.value);
+                        setPriorityPickerOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs hover:bg-muted/50"
+                    >
+                      <span>{option.label}</span>
+                      {priority === option.value && (
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Assignee picker */}
             <div className="relative" ref={assigneePickerRef}>
               <Button
@@ -491,6 +553,7 @@ export function TaskDialog({
                 onClick={() => {
                   setAssigneePickerOpen(!assigneePickerOpen);
                   setDatePickerOpen(false);
+                  setPriorityPickerOpen(false);
                   setRecordPickerOpen(false);
                 }}
               >
@@ -559,6 +622,7 @@ export function TaskDialog({
                   const opening = !recordPickerOpen;
                   setRecordPickerOpen(opening);
                   setDatePickerOpen(false);
+                  setPriorityPickerOpen(false);
                   setAssigneePickerOpen(false);
                   if (opening) loadBrowseResults();
                 }}
