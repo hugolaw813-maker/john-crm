@@ -199,14 +199,15 @@ export function buildSortExpressions(
     if (attr.type === "personal_name") {
       parts.push(
         sql`(
-          SELECT COALESCE(
-            rv.json_value->>'full_name',
-            CONCAT_WS(' ', rv.json_value->>'first_name', rv.json_value->>'last_name')
-          )
+          SELECT NULLIF(LOWER(COALESCE(
+            NULLIF(rv.json_value->>'full_name', ''),
+            NULLIF(CONCAT_WS(' ', rv.json_value->>'first_name', rv.json_value->>'last_name'), ''),
+            NULLIF(CONCAT_WS(' ', rv.json_value->>'firstName', rv.json_value->>'lastName'), '')
+          )), '')
           FROM record_values rv
           WHERE rv.record_id = records.id AND rv.attribute_id = ${attr.id}
           LIMIT 1
-        ) ${dir}`
+        ) ${dir} NULLS LAST`
       );
       continue;
     }
