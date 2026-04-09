@@ -39,7 +39,7 @@ interface Task {
   createdBy: string | null;
   createdAt: string;
   linkedRecords: { id: string; displayName: string; objectSlug: string }[];
-  assignees: { id: string; name: string; email: string }[];
+  assignees: { id: string; displayName: string; objectSlug: string }[];
 }
 
 interface CurrentUser {
@@ -516,20 +516,25 @@ function TaskRow({
       </div>
 
       {/* Assigned to column */}
-      <div className="flex items-center gap-1">
-        {task.assignees.slice(0, 3).map((a) => (
-          <div
-            key={a.id}
-            className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-medium text-primary border border-background shrink-0"
-            title={a.name || a.email}
-          >
-            {(a.name || a.email)[0].toUpperCase()}
+      <div className="min-w-0">
+        {task.assignees.length > 0 && (
+          <div className="flex items-center gap-1 truncate">
+            {task.assignees.slice(0, 2).map((a) => (
+              <Link
+                key={a.id}
+                href={`/objects/${a.objectSlug}/${a.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-primary hover:underline truncate"
+              >
+                {a.displayName}
+              </Link>
+            ))}
+            {task.assignees.length > 2 && (
+              <span className="text-xs text-muted-foreground">
+                +{task.assignees.length - 2}
+              </span>
+            )}
           </div>
-        ))}
-        {task.assignees.length > 3 && (
-          <span className="text-xs text-muted-foreground">
-            +{task.assignees.length - 3}
-          </span>
         )}
       </div>
     </div>

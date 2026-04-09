@@ -50,3 +50,19 @@ export const taskAssignees = pgTable(
     index("task_assignees_user_id").on(table.userId),
   ]
 );
+
+export const taskAssignedRecords = pgTable(
+  "task_assigned_records",
+  {
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => records.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    index("task_assigned_records_task_id").on(table.taskId),
+    index("task_assigned_records_record_id").on(table.recordId),
+  ]
+);

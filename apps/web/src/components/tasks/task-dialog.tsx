@@ -43,14 +43,7 @@ interface TaskFormData {
   assigneeIds: string[];
   recordIds: string[];
   linkedRecords?: { id: string; displayName: string; objectSlug: string }[];
-  assignees?: { id: string; name: string; email: string }[];
-}
-
-interface Member {
-  id: string;
-  userId: string;
-  name: string;
-  email: string;
+  assignees?: { id: string; displayName: string; objectSlug: string }[];
 }
 
 interface SearchResult {
@@ -112,11 +105,12 @@ export function TaskDialog({
   const [recordPickerOpen, setRecordPickerOpen] = useState(false);
 
   // Data for pickers
-  const [members, setMembers] = useState<Member[]>([]);
-  const [memberSearch, setMemberSearch] = useState("");
+  const [assigneeSearch, setAssigneeSearch] = useState("");
   const [recordSearch, setRecordSearch] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [assigneeResults, setAssigneeResults] = useState<SearchResult[]>([]);
+  const [assigneeLoading, setAssigneeLoading] = useState(false);
 
   const contentRef = useRef<HTMLInputElement>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -159,7 +153,7 @@ export function TaskDialog({
         setContent("");
         setDeadline(null);
         setPriority("medium");
-        setAssigneeIds(currentUserId ? [currentUserId] : []);
+        setAssigneeIds([]);
         setLinkedRecords(
           defaultRecordId && defaultRecordName
             ? [
@@ -176,7 +170,7 @@ export function TaskDialog({
       setPriorityPickerOpen(false);
       setAssigneePickerOpen(false);
       setRecordPickerOpen(false);
-      setMemberSearch("");
+      setAssigneeSearch("");
       setRecordSearch("");
       setSearchResults([]);
       // Focus title input after dialog opens
@@ -191,27 +185,6 @@ export function TaskDialog({
     defaultRecordName,
     defaultRecordSlug,
   ]);
-
-  // Fetch workspace members
-  useEffect(() => {
-    if (open && members.length === 0) {
-      fetch("/api/v1/workspace-members")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.data) {
-            setMembers(
-              data.data.map((m: { userId: string; userName?: string; userEmail?: string }) => ({
-                id: m.userId,
-                userId: m.userId,
-                name: m.userName || "",
-                email: m.userEmail || "",
-              }))
-            );
-          }
-        })
-        .catch(() => {});
-    }
-  }, [open, members.length]);
 
   // Load browse results (no query)
   const loadBrowseResults = useCallback(async () => {
@@ -237,6 +210,65 @@ export function TaskDialog({
     } finally {
       setSearchLoading(false);
     }
+  }, []);
+
+  const searchPeople = useCallback((query: string, setter: (results: SearchResult[]) => void, setLoadingState: (loading: boolean) => void) => {
+    if (searchTimerRef.current !== null) clearTimeout(searchTimerRef.current);
+    if (!query.trim()) {
+      setLoadingState(true);
+      fetch("/api/v1/records/browse?limit=30")
+        .then((r) => r.json())
+        .then((data) => {
+          setter(
+            (data.data || [])
+              .map((r: { recordId: string; displayName: string; subtitle?: string; objectSlug: string; objectName: string }) => ({
+                id: r.recordId,
+                displayName: r.displayName,
+                subtitle: r.subtitle || "",
+                objectSlug: r.objectSlug,
+                objectName: r.objectName,
+              }))
+              .filter((r: SearchResult) => r.objectSlug === "people")
+          );
+        })
+        .catch(() => {})
+        .finally(() => setLoadingState(false));
+      return;
+    }
+    setLoadingState(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/v1/search?q=${encodeURIComponent(query)}&limit=10`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setter(
+            (data.data || [])
+              .filter((r: { type: string; objectSlug?: string }) => r.type === "record" && r.objectSlug === "people")
+              .map(
+                (r: {
+                  id: string;
+                  title: string;
+                  subtitle: string;
+                  objectSlug: string;
+                  objectName: string;
+                }) => ({
+                  id: r.id,
+                  displayName: r.title,
+                  subtitle: r.subtitle || "",
+                  objectSlug: r.objectSlug || "",
+                  objectName: r.objectName || "",
+                })
+              )
+          );
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoadingState(false);
+      }
+    }, 300);
   }, []);
 
   // Search records with debounce
@@ -378,22 +410,22 @@ export function TaskDialog({
     setLinkedRecords((prev) => prev.filter((r) => r.id !== recordId));
   }
 
-  function toggleAssignee(userId: string) {
+  function toggleAssignee(recordId: string) {
     setAssigneeIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+      prev.includes(recordId)
+        ? prev.filter((id) => id !== recordId)
+        : [...prev, recordId]
     );
   }
 
-  const filteredMembers = members.filter(
-    (m) =>
-      !memberSearch ||
-      m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-      m.email.toLowerCase().includes(memberSearch.toLowerCase())
-  );
-
-  const assignedMembers = members.filter((m) => assigneeIds.includes(m.userId));
+  const assignedMembers = (initialData?.assignees || [])
+    .filter((m) => assigneeIds.includes(m.id))
+    .concat(
+      assigneeResults
+        .filter((m) => assigneeIds.includes(m.id))
+        .filter((m) => !(initialData?.assignees || []).some((a) => a.id === m.id))
+        .map((m) => ({ id: m.id, displayName: m.displayName, objectSlug: m.objectSlug }))
+    );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -551,19 +583,18 @@ export function TaskDialog({
                   assigneeIds.length === 0 && "text-muted-foreground"
                 )}
                 onClick={() => {
-                  setAssigneePickerOpen(!assigneePickerOpen);
+                  const opening = !assigneePickerOpen;
+                  setAssigneePickerOpen(opening);
                   setDatePickerOpen(false);
                   setPriorityPickerOpen(false);
                   setRecordPickerOpen(false);
+                  if (opening) searchPeople("", setAssigneeResults, setAssigneeLoading);
                 }}
               >
                 <User className="h-3.5 w-3.5" />
                 {assignedMembers.length > 0
-                  ? assignedMembers.length === 1 &&
-                    assignedMembers[0].userId === currentUserId
-                    ? "Assigned to You"
-                    : `${assignedMembers.length} assignee${assignedMembers.length > 1 ? "s" : ""}`
-                  : "Assign"}
+                  ? `${assignedMembers.length} assigned person${assignedMembers.length > 1 ? "s" : ""}`
+                  : "Assign person"}
               </Button>
               {assigneePickerOpen && (
                 <div className="absolute top-full left-0 z-50 mt-1 w-56 rounded-lg border border-border bg-popover shadow-lg">
@@ -571,34 +602,41 @@ export function TaskDialog({
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        value={memberSearch}
-                        onChange={(e) => setMemberSearch(e.target.value)}
-                        placeholder="Find a user..."
+                        value={assigneeSearch}
+                        onChange={(e) => {
+                          setAssigneeSearch(e.target.value);
+                          searchPeople(e.target.value, setAssigneeResults, setAssigneeLoading);
+                        }}
+                        placeholder="Find a person..."
                         className="h-8 pl-8 text-xs"
                         autoFocus
                       />
                     </div>
                   </div>
                   <div className="max-h-40 overflow-auto px-1 pb-2">
-                    {filteredMembers.length === 0 && (
+                    {assigneeLoading && assigneeResults.length === 0 && (
                       <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                        No users
+                        Searching...
                       </p>
                     )}
-                    {filteredMembers.map((m) => (
+                    {!assigneeLoading && assigneeResults.length === 0 && (
+                      <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                        No people
+                      </p>
+                    )}
+                    {assigneeResults.map((m) => (
                       <button
-                        key={m.userId}
-                        onClick={() => toggleAssignee(m.userId)}
+                        key={m.id}
+                        onClick={() => toggleAssignee(m.id)}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
                       >
                         <div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-medium text-primary shrink-0">
-                          {(m.name || m.email)[0].toUpperCase()}
+                          {(m.displayName || "?")[0].toUpperCase()}
                         </div>
                         <span className="flex-1 truncate text-left text-xs">
-                          {m.name || m.email}
-                          {m.userId === currentUserId && " (You)"}
+                          {m.displayName}
                         </span>
-                        {assigneeIds.includes(m.userId) && (
+                        {assigneeIds.includes(m.id) && (
                           <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                         )}
                       </button>

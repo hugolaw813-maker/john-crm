@@ -2,8 +2,7 @@ import { db } from "@/db";
 import {
   tasks,
   taskRecords,
-  taskAssignees,
-  users,
+  taskAssignedRecords,
 } from "@/db/schema";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { batchGetRecordDisplayNames } from "./display-names";
@@ -18,7 +17,7 @@ export interface TaskData {
   createdBy: string | null;
   createdAt: Date;
   linkedRecords: { id: string; displayName: string; objectSlug: string }[];
-  assignees: { id: string; name: string; email: string }[];
+  assignees: { id: string; displayName: string; objectSlug: string }[];
 }
 
 /** Batch-enrich an array of task rows into TaskData[] (~3 queries total) */
@@ -29,26 +28,25 @@ async function enrichTasks(
 
   const taskIds = taskRows.map((t) => t.id);
 
-  // 1. Batch get all task_records + task_assignees in parallel
-  const [allTaskRecords, allTaskAssignees] = await Promise.all([
+  // 1. Batch get all task person links + assigned person links in parallel
+  const [allTaskRecords, allAssignedRecords] = await Promise.all([
     db
       .select({ taskId: taskRecords.taskId, recordId: taskRecords.recordId })
       .from(taskRecords)
       .where(inArray(taskRecords.taskId, taskIds)),
     db
-      .select({
-        taskId: taskAssignees.taskId,
-        userId: taskAssignees.userId,
-        name: users.name,
-        email: users.email,
-      })
-      .from(taskAssignees)
-      .innerJoin(users, eq(taskAssignees.userId, users.id))
-      .where(inArray(taskAssignees.taskId, taskIds)),
+      .select({ taskId: taskAssignedRecords.taskId, recordId: taskAssignedRecords.recordId })
+      .from(taskAssignedRecords)
+      .where(inArray(taskAssignedRecords.taskId, taskIds)),
   ]);
 
   // 2. Collect unique recordIds and batch-resolve display names
-  const allRecordIds = [...new Set(allTaskRecords.map((tr) => tr.recordId))];
+  const allRecordIds = [
+    ...new Set([
+      ...allTaskRecords.map((tr) => tr.recordId),
+      ...allAssignedRecords.map((tr) => tr.recordId),
+    ]),
+  ];
   const displayMap = await batchGetRecordDisplayNames(allRecordIds);
 
   // 3. Group by taskId
@@ -64,10 +62,15 @@ async function enrichTasks(
     recordsByTask.set(tr.taskId, arr);
   }
 
-  const assigneesByTask = new Map<string, { id: string; name: string; email: string }[]>();
-  for (const ta of allTaskAssignees) {
+  const assigneesByTask = new Map<string, { id: string; displayName: string; objectSlug: string }[]>();
+  for (const ta of allAssignedRecords) {
+    const info = displayMap.get(ta.recordId);
     const arr = assigneesByTask.get(ta.taskId) || [];
-    arr.push({ id: ta.userId, name: ta.name, email: ta.email });
+    arr.push({
+      id: ta.recordId,
+      displayName: info?.displayName || "Unknown",
+      objectSlug: info?.objectSlug || "",
+    });
     assigneesByTask.set(ta.taskId, arr);
   }
 
@@ -171,12 +174,12 @@ export async function createTask(
     );
   }
 
-  // Add assignees
+  // Add assigned people
   if (options.assigneeIds && options.assigneeIds.length > 0) {
-    await db.insert(taskAssignees).values(
-      options.assigneeIds.map((userId) => ({
+    await db.insert(taskAssignedRecords).values(
+      options.assigneeIds.map((recordId) => ({
         taskId: task.id,
-        userId,
+        recordId,
       }))
     );
   }
@@ -237,12 +240,12 @@ export async function updateTask(
     }
   }
 
-  // Replace assignees
+  // Replace assigned people
   if (updates.assigneeIds !== undefined) {
-    await db.delete(taskAssignees).where(eq(taskAssignees.taskId, taskId));
+    await db.delete(taskAssignedRecords).where(eq(taskAssignedRecords.taskId, taskId));
     if (updates.assigneeIds.length > 0) {
-      await db.insert(taskAssignees).values(
-        updates.assigneeIds.map((userId) => ({ taskId, userId }))
+      await db.insert(taskAssignedRecords).values(
+        updates.assigneeIds.map((recordId) => ({ taskId, recordId }))
       );
     }
   }
