@@ -308,7 +308,7 @@ export function TaskList() {
       <div className="grid grid-cols-[1fr_120px_150px_120px] gap-2 border-b border-border px-4 py-1.5 text-xs font-medium text-muted-foreground">
         <span>Task</span>
         <span>Due date</span>
-        <span>Record</span>
+        <span>Person</span>
         <span>Assigned to</span>
       </div>
 
@@ -422,6 +422,10 @@ function TaskRow({
   const dateInfo = task.deadline
     ? getRelativeDateLabel(task.deadline)
     : null;
+  const linkedPeople = task.linkedRecords.filter(
+    (record) => record.objectSlug === "people"
+  );
+  const displayRecords = linkedPeople.length > 0 ? linkedPeople : task.linkedRecords;
 
   return (
     <div
@@ -470,11 +474,11 @@ function TaskRow({
         )}
       </div>
 
-      {/* Record column */}
+      {/* Person column */}
       <div className="min-w-0">
-        {task.linkedRecords.length > 0 && (
+        {displayRecords.length > 0 && (
           <div className="flex items-center gap-1 truncate">
-            {task.linkedRecords.slice(0, 2).map((rec) => (
+            {displayRecords.slice(0, 2).map((rec) => (
               <Link
                 key={rec.id}
                 href={`/objects/${rec.objectSlug}/${rec.id}`}
@@ -484,9 +488,9 @@ function TaskRow({
                 {rec.displayName}
               </Link>
             ))}
-            {task.linkedRecords.length > 2 && (
+            {displayRecords.length > 2 && (
               <span className="text-xs text-muted-foreground">
-                +{task.linkedRecords.length - 2}
+                +{displayRecords.length - 2}
               </span>
             )}
           </div>
