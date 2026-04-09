@@ -25,11 +25,10 @@ export function SortBuilder({
   onChange,
   onClose,
 }: SortBuilderProps) {
-  // Only show sortable attributes (exclude json-stored ones like location, personal_name)
+  // Only show sortable attributes (exclude unsupported json-stored ones like location)
   const sortableAttrs = attributes.filter(
     (a) =>
       a.type !== "location" &&
-      a.type !== "personal_name" &&
       a.type !== "interaction"
   );
 

@@ -194,9 +194,24 @@ export function buildSortExpressions(
     const attr = attrMap.get(sort.attribute);
     if (!attr) continue;
 
-    const colName = ATTRIBUTE_TYPE_COLUMN_MAP[attr.type];
     const dir = sort.direction === "desc" ? sql`DESC` : sql`ASC`;
 
+    if (attr.type === "personal_name") {
+      parts.push(
+        sql`(
+          SELECT COALESCE(
+            rv.json_value->>'full_name',
+            CONCAT_WS(' ', rv.json_value->>'first_name', rv.json_value->>'last_name')
+          )
+          FROM record_values rv
+          WHERE rv.record_id = records.id AND rv.attribute_id = ${attr.id}
+          LIMIT 1
+        ) ${dir}`
+      );
+      continue;
+    }
+
+    const colName = ATTRIBUTE_TYPE_COLUMN_MAP[attr.type];
     parts.push(
       sql`(SELECT rv.${sql.raw(colName)} FROM record_values rv WHERE rv.record_id = records.id AND rv.attribute_id = ${attr.id} LIMIT 1) ${dir}`
     );
