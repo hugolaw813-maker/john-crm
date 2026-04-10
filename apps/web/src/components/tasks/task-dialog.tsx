@@ -593,8 +593,8 @@ export function TaskDialog({
               >
                 <User className="h-3.5 w-3.5" />
                 {assignedMembers.length > 0
-                  ? `${assignedMembers.length} assigned person${assignedMembers.length > 1 ? "s" : ""}`
-                  : "Assign person"}
+                  ? `${assignedMembers.length} assigned People record${assignedMembers.length > 1 ? "s" : ""}`
+                  : "Assign from main People list"}
               </Button>
               {assigneePickerOpen && (
                 <div className="absolute top-full left-0 z-50 mt-1 w-56 rounded-lg border border-border bg-popover shadow-lg">
@@ -607,7 +607,7 @@ export function TaskDialog({
                           setAssigneeSearch(e.target.value);
                           searchPeople(e.target.value, setAssigneeResults, setAssigneeLoading);
                         }}
-                        placeholder="Find a person..."
+                        placeholder="Find a person from the main People list..."
                         className="h-8 pl-8 text-xs"
                         autoFocus
                       />
@@ -667,8 +667,8 @@ export function TaskDialog({
               >
                 <Link2 className="h-3.5 w-3.5" />
                 {linkedRecords.length > 0
-                  ? `${linkedRecords.length} linked person${linkedRecords.length > 1 ? "s" : ""}`
-                  : "Add person"}
+                  ? `${linkedRecords.length} linked People record${linkedRecords.length > 1 ? "s" : ""}`
+                  : "Add Person (from main People list)"}
               </Button>
               {recordPickerOpen && (
                 <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-lg border border-border bg-popover shadow-lg">
@@ -720,7 +720,7 @@ export function TaskDialog({
                           setRecordSearch(e.target.value);
                           searchRecords(e.target.value);
                         }}
-                        placeholder="Search people..."
+                        placeholder="Search the main People list..."
                         className="h-8 pl-8 text-xs"
                         autoFocus
                       />

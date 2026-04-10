@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -126,7 +125,6 @@ const GROUP_ORDER: GroupKey[] = [
 // ─── Main Component ─────────────────────────────────────────────────
 
 export function TaskList() {
-  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -375,7 +373,6 @@ export function TaskList() {
                   <TaskRow
                     key={task.id}
                     task={task}
-                    router={router}
                     onToggle={() => toggleComplete(task.id, task.isCompleted)}
                     onClick={() => openEditDialog(task)}
                   />
@@ -418,12 +415,10 @@ export function TaskList() {
 
 function TaskRow({
   task,
-  router,
   onToggle,
   onClick,
 }: {
   task: Task;
-  router: ReturnType<typeof useRouter>;
   onToggle: () => void;
   onClick: () => void;
 }) {
@@ -507,9 +502,10 @@ function TaskRow({
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/objects/${rec.objectSlug}/${rec.id}`);
+                  onClick();
                 }}
                 className="text-xs text-primary hover:underline truncate text-left"
+                title={`Edit Person from main People list: ${rec.displayName}`}
               >
                 {rec.displayName}
               </button>
@@ -534,9 +530,10 @@ function TaskRow({
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/objects/${a.objectSlug}/${a.id}`);
+                  onClick();
                 }}
                 className="text-xs text-primary hover:underline truncate text-left"
+                title={`Edit Assigned to from main People list: ${a.displayName}`}
               >
                 {a.displayName}
               </button>
