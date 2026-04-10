@@ -12,9 +12,12 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronRight,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskDialog } from "./task-dialog";
+import { Popover } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import {
   isToday,
   isTomorrow,
@@ -45,6 +48,13 @@ interface CurrentUser {
   id: string;
   name: string;
   email: string;
+}
+
+interface PersonSearchResult {
+  id: string;
+  displayName: string;
+  subtitle?: string;
+  objectSlug: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -249,6 +259,19 @@ export function TaskList() {
     fetchTasks();
   }
 
+  async function updateTaskPerson(taskId: string, personId: string) {
+    const res = await fetch(`/api/v1/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recordIds: personId ? [personId] : [] }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error?.message || "Failed to update task person");
+    }
+    fetchTasks();
+  }
+
   function toggleGroup(key: GroupKey) {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -374,6 +397,7 @@ export function TaskList() {
                     key={task.id}
                     task={task}
                     onToggle={() => toggleComplete(task.id, task.isCompleted)}
+                    onPersonChange={(personId) => updateTaskPerson(task.id, personId)}
                     onClick={() => openEditDialog(task)}
                   />
                 ))}
@@ -413,13 +437,123 @@ export function TaskList() {
 
 // ─── Table Row ───────────────────────────────────────────────────────
 
+function TaskPersonEditor({
+  currentPerson,
+  onSave,
+}: {
+  taskId: string;
+  currentPerson?: { id: string; displayName: string; objectSlug: string };
+  onSave: (personId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<PersonSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadPeople = useCallback(async (search = "") => {
+    setLoading(true);
+    try {
+      if (search.trim()) {
+        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(search)}&limit=10`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(
+            (data.data || [])
+              .filter((r: { type: string; objectSlug?: string }) => r.type === "record" && r.objectSlug === "people")
+              .map((r: { id: string; title: string; subtitle?: string; objectSlug: string }) => ({
+                id: r.id,
+                displayName: r.title,
+                subtitle: r.subtitle || "",
+                objectSlug: r.objectSlug,
+              }))
+          );
+        }
+      } else {
+        const res = await fetch(`/api/v1/records/browse?limit=30`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(
+            (data.data || [])
+              .filter((r: { objectSlug?: string }) => r.objectSlug === "people")
+              .map((r: { recordId: string; displayName: string; subtitle?: string; objectSlug: string }) => ({
+                id: r.recordId,
+                displayName: r.displayName,
+                subtitle: r.subtitle || "",
+                objectSlug: r.objectSlug,
+              }))
+          );
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) loadPeople(query);
+  }, [open, query, loadPeople]);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+      trigger={
+        <button
+          type="button"
+          onMouseDown={(e) => e.stopPropagation()}
+          className="text-xs text-primary hover:underline truncate text-left"
+          title="Edit from main People list"
+        >
+          {currentPerson?.displayName || "Set Person"}
+        </button>
+      }
+      className="w-72 p-2"
+    >
+      <div className="space-y-2" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search the main People list..."
+            className="h-8 pl-8 text-xs"
+            autoFocus
+          />
+        </div>
+        <div className="max-h-56 overflow-auto space-y-1">
+          {loading && <p className="px-2 py-2 text-xs text-muted-foreground">Searching...</p>}
+          {!loading && results.length === 0 && (
+            <p className="px-2 py-2 text-xs text-muted-foreground">No People found</p>
+          )}
+          {results.map((person) => (
+            <button
+              key={person.id}
+              type="button"
+              onClick={() => {
+                onSave(person.id);
+                setOpen(false);
+              }}
+              className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted/50"
+            >
+              <span className="truncate">{person.displayName}</span>
+              {currentPerson?.id === person.id && <Check className="h-3.5 w-3.5 text-primary" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </Popover>
+  );
+}
+
 function TaskRow({
   task,
   onToggle,
+  onPersonChange,
   onClick,
 }: {
   task: Task;
   onToggle: () => void;
+  onPersonChange: (personId: string) => void;
   onClick: () => void;
 }) {
   const dateInfo = task.deadline
@@ -492,31 +626,12 @@ function TaskRow({
       </div>
 
       {/* Person column */}
-      <div className="min-w-0">
-        {displayRecords.length > 0 && (
-          <div className="flex items-center gap-1 truncate">
-            {displayRecords.slice(0, 2).map((rec) => (
-              <button
-                key={rec.id}
-                type="button"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-                className="text-xs text-primary hover:underline truncate text-left"
-                title={`Edit Person from main People list: ${rec.displayName}`}
-              >
-                {rec.displayName}
-              </button>
-            ))}
-            {displayRecords.length > 2 && (
-              <span className="text-xs text-muted-foreground">
-                +{displayRecords.length - 2}
-              </span>
-            )}
-          </div>
-        )}
+      <div className="min-w-0" onClick={(e) => e.stopPropagation()}>
+        <TaskPersonEditor
+          taskId={task.id}
+          currentPerson={displayRecords[0]}
+          onSave={onPersonChange}
+        />
       </div>
 
       {/* Assigned to column */}
