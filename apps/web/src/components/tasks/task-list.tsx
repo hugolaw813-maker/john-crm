@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -126,6 +126,7 @@ const GROUP_ORDER: GroupKey[] = [
 // ─── Main Component ─────────────────────────────────────────────────
 
 export function TaskList() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -374,6 +375,7 @@ export function TaskList() {
                   <TaskRow
                     key={task.id}
                     task={task}
+                    router={router}
                     onToggle={() => toggleComplete(task.id, task.isCompleted)}
                     onClick={() => openEditDialog(task)}
                   />
@@ -416,10 +418,12 @@ export function TaskList() {
 
 function TaskRow({
   task,
+  router,
   onToggle,
   onClick,
 }: {
   task: Task;
+  router: ReturnType<typeof useRouter>;
   onToggle: () => void;
   onClick: () => void;
 }) {
@@ -497,14 +501,18 @@ function TaskRow({
         {displayRecords.length > 0 && (
           <div className="flex items-center gap-1 truncate">
             {displayRecords.slice(0, 2).map((rec) => (
-              <Link
+              <button
                 key={rec.id}
-                href={`/objects/${rec.objectSlug}/${rec.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-primary hover:underline truncate"
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/objects/${rec.objectSlug}/${rec.id}`);
+                }}
+                className="text-xs text-primary hover:underline truncate text-left"
               >
                 {rec.displayName}
-              </Link>
+              </button>
             ))}
             {displayRecords.length > 2 && (
               <span className="text-xs text-muted-foreground">
@@ -520,14 +528,18 @@ function TaskRow({
         {task.assignees.length > 0 && (
           <div className="flex items-center gap-1 truncate">
             {task.assignees.slice(0, 2).map((a) => (
-              <Link
+              <button
                 key={a.id}
-                href={`/objects/${a.objectSlug}/${a.id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="text-xs text-primary hover:underline truncate"
+                type="button"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/objects/${a.objectSlug}/${a.id}`);
+                }}
+                className="text-xs text-primary hover:underline truncate text-left"
               >
                 {a.displayName}
-              </Link>
+              </button>
             ))}
             {task.assignees.length > 2 && (
               <span className="text-xs text-muted-foreground">
