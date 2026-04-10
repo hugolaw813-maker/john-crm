@@ -115,20 +115,29 @@ export async function globalSearch(
       let displayName = "Unnamed";
       let subtitle = rec.objectSingularName;
 
-      // Find display name: name attribute or personal_name
-      for (const v of vals) {
+      // Find display name: prefer slug="name"; fall back to personal_name only if needed
+      const explicitName = vals.find((v) => {
         const attr = attrMap.get(v.attributeId);
-        if (!attr) continue;
-        if (attr.type === "personal_name" && v.jsonValue) {
-          const name = extractPersonalName(v.jsonValue);
-          if (name) {
-            displayName = name;
-            break;
-          }
+        return attr?.slug === "name";
+      });
+      if (explicitName) {
+        const attr = attrMap.get(explicitName.attributeId);
+        if (attr?.type === "personal_name" && explicitName.jsonValue) {
+          displayName = extractPersonalName(explicitName.jsonValue) || "Unnamed";
+        } else if (explicitName.textValue) {
+          displayName = explicitName.textValue;
         }
-        if (attr.slug === "name" && v.textValue) {
-          displayName = v.textValue;
-          break;
+      } else {
+        for (const v of vals) {
+          const attr = attrMap.get(v.attributeId);
+          if (!attr) continue;
+          if (attr.type === "personal_name" && v.jsonValue) {
+            const name = extractPersonalName(v.jsonValue);
+            if (name) {
+              displayName = name;
+              break;
+            }
+          }
         }
       }
 

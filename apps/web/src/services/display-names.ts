@@ -57,10 +57,13 @@ export async function batchGetRecordDisplayNames(
 
   const objectMap = new Map(objectRows.map((o) => [o.id, o]));
 
-  // 3. Find the "name" attribute per object (slug="name" or type="personal_name")
+  // 3. Find the best display-name attribute per object.
+  // Prefer slug="name"; only fall back to any personal_name field if no explicit name exists.
   const nameAttrByObject = new Map<string, { id: string; type: string }>();
   for (const a of attrRows) {
-    if (a.slug === "name" || a.type === "personal_name") {
+    if (a.slug === "name") {
+      nameAttrByObject.set(a.objectId, { id: a.id, type: a.type });
+    } else if (a.type === "personal_name" && !nameAttrByObject.has(a.objectId)) {
       nameAttrByObject.set(a.objectId, { id: a.id, type: a.type });
     }
   }

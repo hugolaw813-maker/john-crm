@@ -46,7 +46,9 @@ export async function GET(req: NextRequest) {
 
   const nameAttrMap = new Map<string, { id: string; type: string }>();
   for (const a of nameAttrs) {
-    if (a.slug === "name" || a.type === "personal_name") {
+    if (a.slug === "name") {
+      nameAttrMap.set(a.objectId, { id: a.id, type: a.type });
+    } else if (a.type === "personal_name" && !nameAttrMap.has(a.objectId)) {
       nameAttrMap.set(a.objectId, { id: a.id, type: a.type });
     }
   }
