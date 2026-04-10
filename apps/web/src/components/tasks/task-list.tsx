@@ -274,11 +274,28 @@ export function TaskList() {
     fetchTasks();
   }
 
-  async function updateTaskPerson(taskId: string, personId: string) {
+  async function updateTaskPerson(taskId: string, person: PersonSearchResult) {
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              linkedRecords: [
+                {
+                  id: person.id,
+                  displayName: person.displayName,
+                  objectSlug: "people",
+                },
+              ],
+            }
+          : task
+      )
+    );
+
     const res = await fetch(`/api/v1/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recordIds: personId ? [personId] : [] }),
+      body: JSON.stringify({ recordIds: person.id ? [person.id] : [] }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -412,7 +429,7 @@ export function TaskList() {
                     key={task.id}
                     task={task}
                     onToggle={() => toggleComplete(task.id, task.isCompleted)}
-                    onPersonChange={(personId) => updateTaskPerson(task.id, personId)}
+                    onPersonChange={(person) => updateTaskPerson(task.id, person)}
                     onClick={() => openEditDialog(task)}
                   />
                 ))}
@@ -458,7 +475,7 @@ function TaskPersonEditor({
 }: {
   taskId: string;
   currentPerson?: { id: string; displayName: string; objectSlug: string };
-  onSave: (personId: string) => void;
+  onSave: (person: PersonSearchResult) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -522,7 +539,7 @@ function TaskPersonEditor({
               key={person.id}
               type="button"
               onClick={() => {
-                onSave(person.id);
+                onSave(person);
                 setOpen(false);
               }}
               className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted/50"
@@ -545,7 +562,7 @@ function TaskRow({
 }: {
   task: Task;
   onToggle: () => void;
-  onPersonChange: (personId: string) => void;
+  onPersonChange: (person: PersonSearchResult) => void;
   onClick: () => void;
 }) {
   const dateInfo = task.deadline
