@@ -21,7 +21,7 @@ import type { SearchResult } from "@/services/search";
 const OBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   people: Users,
   companies: Building2,
-  deals: Handshake,
+  projects: Handshake,
 };
 
 const PAGE_ITEMS = [
@@ -29,8 +29,8 @@ const PAGE_ITEMS = [
   { id: "tasks", label: "Tasks", icon: CheckSquare, url: "/tasks" },
   { id: "notes", label: "Notes", icon: StickyNote, url: "/notes" },
   { id: "people", label: "People", icon: Users, url: "/objects/people" },
-  { id: "companies", label: "Companies", icon: Building2, url: "/objects/companies" },
-  { id: "deals", label: "Deals", icon: Handshake, url: "/objects/deals" },
+  { id: "companies", label: "Groups", icon: Building2, url: "/objects/companies" },
+  { id: "projects", label: "Projects", icon: Handshake, url: "/objects/projects" },
   { id: "settings", label: "Settings", icon: Settings, url: "/settings" },
 ];
 
