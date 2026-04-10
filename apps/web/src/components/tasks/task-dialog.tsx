@@ -23,6 +23,7 @@ import {
   Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { extractPersonalName } from "@/lib/display-name";
 import {
   format,
   isToday,
@@ -52,6 +53,21 @@ interface SearchResult {
   subtitle: string;
   objectSlug: string;
   objectName: string;
+}
+
+async function fetchPeopleList(): Promise<SearchResult[]> {
+  const res = await fetch("/api/v1/objects/people/records?limit=200");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.data?.records || []).map((record: { id: string; values: Record<string, unknown> }) => ({
+    id: record.id,
+    displayName:
+      extractPersonalName(record.values?.name) ||
+      String((record.values?.name as { displayName?: string } | null)?.displayName || "Unnamed"),
+    subtitle: typeof record.values?.description === "string" ? record.values.description : "",
+    objectSlug: "people",
+    objectName: "People",
+  }));
 }
 
 interface TaskDialogProps {
@@ -190,21 +206,7 @@ export function TaskDialog({
   const loadBrowseResults = useCallback(async () => {
     setSearchLoading(true);
     try {
-      const res = await fetch("/api/v1/records/browse?limit=30");
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(
-          (data.data || []).map(
-            (r: { recordId: string; displayName: string; subtitle?: string; objectSlug: string; objectName: string }) => ({
-              id: r.recordId,
-              displayName: r.displayName,
-              subtitle: r.subtitle || "",
-              objectSlug: r.objectSlug,
-              objectName: r.objectName,
-            })
-          )
-        );
-      }
+      setSearchResults(await fetchPeopleList());
     } catch {
       // ignore
     } finally {
@@ -214,61 +216,23 @@ export function TaskDialog({
 
   const searchPeople = useCallback((query: string, setter: (results: SearchResult[]) => void, setLoadingState: (loading: boolean) => void) => {
     if (searchTimerRef.current !== null) clearTimeout(searchTimerRef.current);
-    if (!query.trim()) {
-      setLoadingState(true);
-      fetch("/api/v1/records/browse?limit=30")
-        .then((r) => r.json())
-        .then((data) => {
-          setter(
-            (data.data || [])
-              .map((r: { recordId: string; displayName: string; subtitle?: string; objectSlug: string; objectName: string }) => ({
-                id: r.recordId,
-                displayName: r.displayName,
-                subtitle: r.subtitle || "",
-                objectSlug: r.objectSlug,
-                objectName: r.objectName,
-              }))
-              .filter((r: SearchResult) => r.objectSlug === "people")
-          );
-        })
-        .catch(() => {})
-        .finally(() => setLoadingState(false));
-      return;
-    }
     setLoadingState(true);
     searchTimerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/v1/search?q=${encodeURIComponent(query)}&limit=10`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setter(
-            (data.data || [])
-              .filter((r: { type: string; objectSlug?: string }) => r.type === "record" && r.objectSlug === "people")
-              .map(
-                (r: {
-                  id: string;
-                  title: string;
-                  subtitle: string;
-                  objectSlug: string;
-                  objectName: string;
-                }) => ({
-                  id: r.id,
-                  displayName: r.title,
-                  subtitle: r.subtitle || "",
-                  objectSlug: r.objectSlug || "",
-                  objectName: r.objectName || "",
-                })
-              )
-          );
-        }
+        const people = await fetchPeopleList();
+        const filtered = !query.trim()
+          ? people
+          : people.filter((person) =>
+              person.displayName.toLowerCase().includes(query.toLowerCase()) ||
+              person.subtitle.toLowerCase().includes(query.toLowerCase())
+            );
+        setter(filtered);
       } catch {
         // ignore
       } finally {
         setLoadingState(false);
       }
-    }, 300);
+    }, 150);
   }, []);
 
   // Search records with debounce

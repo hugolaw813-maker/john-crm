@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { TaskDialog } from "./task-dialog";
 import { Popover } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { extractPersonalName } from "@/lib/display-name";
 import {
   isToday,
   isTomorrow,
@@ -55,6 +56,20 @@ interface PersonSearchResult {
   displayName: string;
   subtitle?: string;
   objectSlug: string;
+}
+
+async function fetchPeopleList(): Promise<PersonSearchResult[]> {
+  const res = await fetch("/api/v1/objects/people/records?limit=200");
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.data?.records || []).map((record: { id: string; values: Record<string, unknown> }) => ({
+    id: record.id,
+    displayName:
+      extractPersonalName(record.values?.name) ||
+      String((record.values?.name as { displayName?: string } | null)?.displayName || "Unnamed"),
+    subtitle: typeof record.values?.description === "string" ? record.values.description : "",
+    objectSlug: "people",
+  }));
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────
@@ -453,37 +468,14 @@ function TaskPersonEditor({
   const loadPeople = useCallback(async (search = "") => {
     setLoading(true);
     try {
-      if (search.trim()) {
-        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(search)}&limit=10`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(
-            (data.data || [])
-              .filter((r: { type: string; objectSlug?: string }) => r.type === "record" && r.objectSlug === "people")
-              .map((r: { id: string; title: string; subtitle?: string; objectSlug: string }) => ({
-                id: r.id,
-                displayName: r.title,
-                subtitle: r.subtitle || "",
-                objectSlug: r.objectSlug,
-              }))
+      const people = await fetchPeopleList();
+      const filtered = !search.trim()
+        ? people
+        : people.filter((person) =>
+            person.displayName.toLowerCase().includes(search.toLowerCase()) ||
+            (person.subtitle || "").toLowerCase().includes(search.toLowerCase())
           );
-        }
-      } else {
-        const res = await fetch(`/api/v1/records/browse?limit=30`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(
-            (data.data || [])
-              .filter((r: { objectSlug?: string }) => r.objectSlug === "people")
-              .map((r: { recordId: string; displayName: string; subtitle?: string; objectSlug: string }) => ({
-                id: r.recordId,
-                displayName: r.displayName,
-                subtitle: r.subtitle || "",
-                objectSlug: r.objectSlug,
-              }))
-          );
-        }
-      }
+      setResults(filtered);
     } finally {
       setLoading(false);
     }
