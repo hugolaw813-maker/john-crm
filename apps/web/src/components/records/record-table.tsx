@@ -8,10 +8,10 @@ import {
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
-import type { AttributeType } from "@openclaw-crm/shared";
+import type { AttributeType, SortConfig } from "@openclaw-crm/shared";
 import { AttributeCell } from "./attribute-cell";
 import { AttributeEditor } from "./attribute-editor";
-import { Plus, ExternalLink } from "lucide-react";
+import { Plus, ExternalLink, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -36,7 +36,9 @@ interface RecordTableProps {
   onUpdateRecord: (recordId: string, slug: string, value: unknown) => void;
   onCreateRecord: () => void;
   onColumnFilterChange: (slug: string, value: unknown) => void;
+  onColumnSortToggle: (slug: string) => void;
   columnFilterValues: Record<string, unknown>;
+  sorts: SortConfig[];
   objectSlug: string;
 }
 
@@ -46,7 +48,9 @@ export function RecordTable({
   onUpdateRecord,
   onCreateRecord,
   onColumnFilterChange,
+  onColumnSortToggle,
   columnFilterValues,
+  sorts,
   objectSlug,
 }: RecordTableProps) {
   const router = useRouter();
@@ -130,24 +134,46 @@ export function RecordTable({
           <thead className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-border align-top">
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                    style={{ width: header.getSize() }}
-                  >
-                    <div>{flexRender(header.column.columnDef.header, header.getContext())}</div>
-                    {header.id !== "_open" && (
-                      <div className="mt-2 normal-case">
-                        {renderColumnFilter(
-                          attributes.find((attr) => attr.slug === header.id),
-                          columnFilterValues[header.id],
-                          (value) => onColumnFilterChange(header.id, value)
-                        )}
-                      </div>
-                    )}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const currentSort = sorts.find((sort) => sort.attribute === header.id);
+                  return (
+                    <th
+                      key={header.id}
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                      style={{ width: header.getSize() }}
+                    >
+                      {header.id === "_open" ? (
+                        <div>{flexRender(header.column.columnDef.header, header.getContext())}</div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onColumnSortToggle(header.id)}
+                          className="flex items-center gap-1 hover:text-foreground"
+                        >
+                          <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                          {currentSort ? (
+                            currentSort.direction === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-50" />
+                          )}
+                        </button>
+                      )}
+                      {header.id !== "_open" && (
+                        <div className="mt-2 normal-case">
+                          {renderColumnFilter(
+                            attributes.find((attr) => attr.slug === header.id),
+                            columnFilterValues[header.id],
+                            (value) => onColumnFilterChange(header.id, value)
+                          )}
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>

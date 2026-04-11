@@ -302,7 +302,18 @@ export default function ObjectPage() {
             onColumnFilterChange={(attrSlug, value) => {
               setColumnFilterValues((prev) => ({ ...prev, [attrSlug]: value }));
             }}
+            onColumnSortToggle={(attrSlug) => {
+              setSorts((prev) => {
+                const current = prev.find((sort) => sort.attribute === attrSlug);
+                if (!current) return [{ attribute: attrSlug, direction: "asc" }];
+                if (current.direction === "asc") {
+                  return [{ attribute: attrSlug, direction: "desc" }];
+                }
+                return prev.filter((sort) => sort.attribute !== attrSlug);
+              });
+            }}
             columnFilterValues={columnFilterValues}
+            sorts={sorts}
             objectSlug={slug}
           />
         ) : (
