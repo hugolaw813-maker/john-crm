@@ -9,6 +9,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, Phone, NotebookPen, CheckSquar
 interface Note {
   id: string;
   noteType: string;
+  noteDate: string;
   title: string;
   content: unknown;
   linkedTaskId: string | null;
@@ -33,6 +34,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
   const [newNoteType, setNewNoteType] = useState<"call" | "meeting" | "note">("note");
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState<unknown>(null);
+  const [newNoteDate, setNewNoteDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [needsFollowUp, setNeedsFollowUp] = useState(false);
   const [followUpTaskContent, setFollowUpTaskContent] = useState("");
   const [followUpDeadline, setFollowUpDeadline] = useState("");
@@ -78,6 +80,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
           title: newTitle,
           content: newContent,
           noteType: newNoteType,
+          noteDate: newNoteDate,
         }),
       }
     );
@@ -110,6 +113,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
       setNewNoteType("note");
       setNewTitle("");
       setNewContent(null);
+      setNewNoteDate(new Date().toISOString().slice(0, 10));
       setNeedsFollowUp(false);
       setFollowUpTaskContent("");
       setFollowUpDeadline("");
@@ -118,7 +122,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
     }
   }
 
-  async function handleUpdate(noteId: string, updates: { title?: string; content?: unknown }) {
+  async function handleUpdate(noteId: string, updates: { title?: string; content?: unknown; noteDate?: string }) {
     await fetch(`/api/v1/notes/${noteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -139,6 +143,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
     setCreating(true);
     setExpandedId(null);
     setNewNoteType(noteType);
+    setNewNoteDate(new Date().toISOString().slice(0, 10));
     setNewTitle(
       noteType === "call" ? "Call log" : noteType === "meeting" ? "Meeting log" : ""
     );
@@ -197,6 +202,15 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
             placeholder={newNoteType === "call" ? "Call title" : newNoteType === "meeting" ? "Meeting title" : "Note title"}
             className="h-8 text-sm"
           />
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Date</label>
+            <input
+              type="date"
+              value={newNoteDate}
+              onChange={(e) => setNewNoteDate(e.target.value)}
+              className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
           <NoteEditor
             content={newContent}
             onChange={setNewContent}
@@ -285,7 +299,7 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
                   <span className="text-[10px] text-primary">Linked task</span>
                 )}
                 <span className="text-xs text-muted-foreground">
-                  {new Date(note.updatedAt).toLocaleDateString()}
+                  {new Date(note.noteDate || note.updatedAt).toLocaleDateString()}
                 </span>
                 <button
                   onClick={(e) => {
@@ -300,7 +314,16 @@ export function RecordNotes({ objectSlug, recordId, composeRequest, onAddTask }:
 
               {/* Expanded content */}
               {isExpanded && (
-                <div className="px-3 pb-3">
+                <div className="px-3 pb-3 space-y-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Date</label>
+                    <input
+                      type="date"
+                      value={new Date(note.noteDate || note.updatedAt).toISOString().slice(0, 10)}
+                      onChange={(e) => handleUpdate(note.id, { noteDate: e.target.value })}
+                      className="flex h-8 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm"
+                    />
+                  </div>
                   <NoteEditor
                     content={note.content}
                     onChange={(content) =>

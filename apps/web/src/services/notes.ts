@@ -7,6 +7,7 @@ export interface NoteData {
   id: string;
   recordId: string;
   noteType: string;
+  noteDate: Date;
   title: string;
   content: unknown;
   linkedTaskId: string | null;
@@ -61,7 +62,7 @@ export async function listNotes(workspaceId: string, options: { limit?: number; 
       .select()
       .from(notes)
       .where(inArray(notes.recordId, recordIds))
-      .orderBy(desc(notes.updatedAt))
+      .orderBy(desc(notes.noteDate), desc(notes.updatedAt))
       .limit(limit)
       .offset(offset),
     db
@@ -92,7 +93,7 @@ export async function getNotesForRecord(recordId: string) {
     .select()
     .from(notes)
     .where(eq(notes.recordId, recordId))
-    .orderBy(desc(notes.updatedAt));
+    .orderBy(desc(notes.noteDate), desc(notes.updatedAt));
 }
 
 export async function getNote(noteId: string) {
@@ -112,6 +113,7 @@ export async function createNote(
   options: {
     noteType?: string;
     linkedTaskId?: string | null;
+    noteDate?: string | null;
   } = {}
 ) {
   const [note] = await db
@@ -122,6 +124,7 @@ export async function createNote(
       content,
       createdBy,
       noteType: options.noteType || "note",
+      noteDate: options.noteDate ? new Date(options.noteDate) : new Date(),
       linkedTaskId: options.linkedTaskId || null,
     })
     .returning();
@@ -135,11 +138,16 @@ export async function updateNote(
     content?: unknown;
     noteType?: string;
     linkedTaskId?: string | null;
+    noteDate?: string | null;
   }
 ) {
+  const setValues: Record<string, unknown> = { ...updates, updatedAt: new Date() };
+  if (updates.noteDate !== undefined) {
+    setValues.noteDate = updates.noteDate ? new Date(updates.noteDate) : new Date();
+  }
   const [note] = await db
     .update(notes)
-    .set({ ...updates, updatedAt: new Date() })
+    .set(setValues)
     .where(eq(notes.id, noteId))
     .returning();
   return note;

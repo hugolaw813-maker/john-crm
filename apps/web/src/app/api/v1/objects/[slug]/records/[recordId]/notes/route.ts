@@ -48,6 +48,7 @@ export async function POST(
     {
       noteType: body.noteType || "note",
       linkedTaskId: body.linkedTaskId || null,
+      noteDate: body.noteDate || null,
     }
   );
 
