@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   useReactTable,
@@ -11,11 +11,9 @@ import {
 import type { AttributeType } from "@openclaw-crm/shared";
 import { AttributeCell } from "./attribute-cell";
 import { AttributeEditor } from "./attribute-editor";
-import { cn } from "@/lib/utils";
 import { Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-// ─── Types ───────────────────────────────────────────────────────────
+import { Input } from "@/components/ui/input";
 
 interface AttributeDef {
   id: string;
@@ -37,23 +35,24 @@ interface RecordTableProps {
   records: RecordRow[];
   onUpdateRecord: (recordId: string, slug: string, value: unknown) => void;
   onCreateRecord: () => void;
+  onColumnFilterChange: (slug: string, value: unknown) => void;
+  columnFilterValues: Record<string, unknown>;
   objectSlug: string;
 }
-
-// ─── Component ───────────────────────────────────────────────────────
 
 export function RecordTable({
   attributes,
   records,
   onUpdateRecord,
   onCreateRecord,
+  onColumnFilterChange,
+  columnFilterValues,
   objectSlug,
 }: RecordTableProps) {
   const router = useRouter();
   const [editingCell, setEditingCell] = useState<{ rowId: string; colId: string } | null>(null);
 
   const columns = useMemo<ColumnDef<RecordRow>[]>(() => {
-    // Open button column
     const openCol: ColumnDef<RecordRow> = {
       id: "_open",
       header: "",
@@ -130,14 +129,23 @@ export function RecordTable({
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-background">
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-border">
+              <tr key={headerGroup.id} className="border-b border-border align-top">
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
-                    className="h-9 px-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                    className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                     style={{ width: header.getSize() }}
                   >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    <div>{flexRender(header.column.columnDef.header, header.getContext())}</div>
+                    {header.id !== "_open" && (
+                      <div className="mt-2 normal-case">
+                        {renderColumnFilter(
+                          attributes.find((attr) => attr.slug === header.id),
+                          columnFilterValues[header.id],
+                          (value) => onColumnFilterChange(header.id, value)
+                        )}
+                      </div>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -163,10 +171,10 @@ export function RecordTable({
             {records.length === 0 && (
               <tr>
                 <td
-                  colSpan={attributes.length}
+                  colSpan={attributes.length + 1}
                   className="h-32 text-center text-muted-foreground"
                 >
-                  No records yet. Click the button below to create one.
+                  No matching records.
                 </td>
               </tr>
             )}
@@ -174,7 +182,6 @@ export function RecordTable({
         </table>
       </div>
 
-      {/* Add record row */}
       <div className="border-t border-border p-2">
         <Button
           variant="ghost"
@@ -187,5 +194,102 @@ export function RecordTable({
         </Button>
       </div>
     </div>
+  );
+}
+
+function renderColumnFilter(
+  attribute: AttributeDef | undefined,
+  value: unknown,
+  onChange: (value: unknown) => void
+) {
+  if (!attribute) return null;
+
+  if (attribute.type === "select" && attribute.options) {
+    return (
+      <select
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs font-normal"
+      >
+        <option value="">All</option>
+        {attribute.options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.title}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (attribute.type === "status" && attribute.statuses) {
+    return (
+      <select
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs font-normal"
+      >
+        <option value="">All</option>
+        {attribute.statuses.map((status) => (
+          <option key={status.id} value={status.id}>
+            {status.title}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (attribute.type === "checkbox") {
+    return (
+      <select
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value === "" ? "" : e.target.value === "true")}
+        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs font-normal"
+      >
+        <option value="">All</option>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    );
+  }
+
+  if (
+    attribute.type === "number" ||
+    attribute.type === "currency" ||
+    attribute.type === "rating"
+  ) {
+    return (
+      <Input
+        type="number"
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 text-xs font-normal"
+        placeholder="Filter..."
+      />
+    );
+  }
+
+  if (attribute.type === "date" || attribute.type === "timestamp") {
+    return (
+      <Input
+        type="date"
+        value={String(value ?? "")}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 text-xs font-normal"
+      />
+    );
+  }
+
+  if (attribute.type === "record_reference" || attribute.type === "actor_reference") {
+    return <div className="h-8" />;
+  }
+
+  return (
+    <Input
+      type="text"
+      value={String(value ?? "")}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-8 text-xs font-normal"
+      placeholder="Filter..."
+    />
   );
 }

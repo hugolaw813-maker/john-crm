@@ -42,6 +42,7 @@ function buildConditionSQL(
 
   const colName = ATTRIBUTE_TYPE_COLUMN_MAP[attr.type];
   const attrId = attr.id;
+  const isJsonSearchType = attr.type === "personal_name" || attr.type === "location";
 
   // For is_empty / is_not_empty, check existence
   if (cond.operator === "is_empty") {
@@ -49,7 +50,7 @@ function buildConditionSQL(
       SELECT 1 FROM record_values rv
       WHERE rv.record_id = records.id
         AND rv.attribute_id = ${attrId}
-        AND rv.${sql.raw(colName)} IS NOT NULL
+        AND ${isJsonSearchType ? sql`rv.json_value IS NOT NULL` : sql`rv.${sql.raw(colName)} IS NOT NULL`}
     )`;
   }
 
@@ -58,7 +59,7 @@ function buildConditionSQL(
       SELECT 1 FROM record_values rv
       WHERE rv.record_id = records.id
         AND rv.attribute_id = ${attrId}
-        AND rv.${sql.raw(colName)} IS NOT NULL
+        AND ${isJsonSearchType ? sql`rv.json_value IS NOT NULL` : sql`rv.${sql.raw(colName)} IS NOT NULL`}
     )`;
   }
 
@@ -69,7 +70,9 @@ function buildConditionSQL(
 
   switch (cond.operator) {
     case "equals":
-      if (colName === "number_value") {
+      if (isJsonSearchType) {
+        comparison = sql`rv.json_value::text = ${String(value)}`;
+      } else if (colName === "number_value") {
         comparison = sql`rv.${sql.raw(colName)} = ${String(value)}::numeric`;
       } else if (colName === "boolean_value") {
         comparison = sql`rv.${sql.raw(colName)} = ${value}::boolean`;
@@ -83,7 +86,9 @@ function buildConditionSQL(
       break;
 
     case "not_equals":
-      if (colName === "number_value") {
+      if (isJsonSearchType) {
+        comparison = sql`rv.json_value::text != ${String(value)}`;
+      } else if (colName === "number_value") {
         comparison = sql`rv.${sql.raw(colName)} != ${String(value)}::numeric`;
       } else {
         comparison = sql`rv.${sql.raw(colName)} != ${value}`;
@@ -91,19 +96,27 @@ function buildConditionSQL(
       break;
 
     case "contains":
-      comparison = sql`rv.${sql.raw(colName)} ILIKE ${"%" + value + "%"}`;
+      comparison = isJsonSearchType
+        ? sql`rv.json_value::text ILIKE ${"%" + value + "%"}`
+        : sql`rv.${sql.raw(colName)} ILIKE ${"%" + value + "%"}`;
       break;
 
     case "not_contains":
-      comparison = sql`rv.${sql.raw(colName)} NOT ILIKE ${"%" + value + "%"}`;
+      comparison = isJsonSearchType
+        ? sql`rv.json_value::text NOT ILIKE ${"%" + value + "%"}`
+        : sql`rv.${sql.raw(colName)} NOT ILIKE ${"%" + value + "%"}`;
       break;
 
     case "starts_with":
-      comparison = sql`rv.${sql.raw(colName)} ILIKE ${value + "%"}`;
+      comparison = isJsonSearchType
+        ? sql`rv.json_value::text ILIKE ${value + "%"}`
+        : sql`rv.${sql.raw(colName)} ILIKE ${value + "%"}`;
       break;
 
     case "ends_with":
-      comparison = sql`rv.${sql.raw(colName)} ILIKE ${"%" + value}`;
+      comparison = isJsonSearchType
+        ? sql`rv.json_value::text ILIKE ${"%" + value}`
+        : sql`rv.${sql.raw(colName)} ILIKE ${"%" + value}`;
       break;
 
     case "greater_than":

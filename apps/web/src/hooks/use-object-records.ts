@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { FilterGroup, SortConfig } from "@openclaw-crm/shared";
 
 interface AttributeDef {
@@ -23,6 +23,50 @@ interface ObjectData {
   attributes: AttributeDef[];
 }
 
+function buildColumnFilterGroup(
+  attributes: AttributeDef[],
+  columnFilterValues: Record<string, unknown>
+): FilterGroup {
+  const conditions: FilterGroup["conditions"] = [];
+
+  for (const attr of attributes) {
+    const rawValue = columnFilterValues[attr.slug];
+    const value = typeof rawValue === "string" ? rawValue.trim() : rawValue;
+
+    if (value === undefined || value === null || value === "") continue;
+
+    switch (attr.type) {
+      case "text":
+      case "email_address":
+      case "phone_number":
+      case "domain":
+      case "personal_name":
+      case "location":
+        conditions.push({ attribute: attr.slug, operator: "contains", value });
+        break;
+      case "number":
+      case "currency":
+      case "rating":
+        conditions.push({ attribute: attr.slug, operator: "equals", value: Number(value) });
+        break;
+      case "date":
+      case "timestamp":
+      case "select":
+      case "status":
+      case "checkbox":
+        conditions.push({ attribute: attr.slug, operator: "equals", value });
+        break;
+      default:
+        break;
+    }
+  }
+
+  return {
+    operator: "and",
+    conditions,
+  };
+}
+
 interface RecordRow {
   id: string;
   values: Record<string, unknown>;
@@ -30,7 +74,7 @@ interface RecordRow {
 
 const EMPTY_FILTER: FilterGroup = { operator: "and", conditions: [] };
 
-export function useObjectRecords(slug: string) {
+export function useObjectRecords(slug: string, columnFilterValues: Record<string, unknown> = {}) {
   const [object, setObject] = useState<ObjectData | null>(null);
   const [records, setRecords] = useState<RecordRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -41,6 +85,11 @@ export function useObjectRecords(slug: string) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState<FilterGroup>(EMPTY_FILTER);
   const [sorts, setSorts] = useState<SortConfig[]>([]);
+
+  const autoFilter = useMemo(
+    () => buildColumnFilterGroup(object?.attributes ?? [], columnFilterValues),
+    [object?.attributes, columnFilterValues]
+  );
 
   // Track whether search/filter/sort have active values
   const hasSearch = debouncedSearch.trim().length > 0;
@@ -73,14 +122,23 @@ export function useObjectRecords(slug: string) {
     setLoading(true);
     try {
       let recData: any;
-      if (hasFilter || hasSort || hasSearch) {
+      const effectiveFilter =
+        hasFilter && autoFilter.conditions.length > 0
+          ? { operator: "and" as const, conditions: [filter, autoFilter] }
+          : hasFilter
+            ? filter
+            : autoFilter.conditions.length > 0
+              ? autoFilter
+              : undefined;
+
+      if (hasFilter || hasSort || hasSearch || autoFilter.conditions.length > 0) {
         const queryRes = await fetch(`/api/v1/objects/${slug}/records/query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             limit: 200,
             ...(hasSearch ? { search: debouncedSearch } : {}),
-            ...(hasFilter ? { filter } : {}),
+            ...(effectiveFilter ? { filter: effectiveFilter } : {}),
             ...(hasSort ? { sorts } : {}),
           }),
         });
@@ -102,7 +160,7 @@ export function useObjectRecords(slug: string) {
     } finally {
       setLoading(false);
     }
-  }, [slug, filter, sorts, debouncedSearch, hasSearch, hasFilter, hasSort]);
+  }, [slug, filter, sorts, debouncedSearch, hasSearch, hasFilter, hasSort, autoFilter]);
 
   useEffect(() => {
     fetchRecords();

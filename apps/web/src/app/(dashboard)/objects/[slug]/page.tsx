@@ -32,6 +32,7 @@ export default function ObjectPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const slug = params.slug;
+  const [columnFilterValues, setColumnFilterValues] = useState<Record<string, unknown>>({});
 
   const {
     object,
@@ -54,7 +55,7 @@ export default function ObjectPage() {
     removeFilterCondition,
     clearFilters,
     clearSorts,
-  } = useObjectRecords(slug);
+  } = useObjectRecords(slug, columnFilterValues);
 
   const [view, setView] = useState<"table" | "board">("table");
   const [createOpen, setCreateOpen] = useState(false);
@@ -298,6 +299,10 @@ export default function ObjectPage() {
             records={records}
             onUpdateRecord={updateRecord}
             onCreateRecord={() => setCreateOpen(true)}
+            onColumnFilterChange={(attrSlug, value) => {
+              setColumnFilterValues((prev) => ({ ...prev, [attrSlug]: value }));
+            }}
+            columnFilterValues={columnFilterValues}
             objectSlug={slug}
           />
         ) : (
