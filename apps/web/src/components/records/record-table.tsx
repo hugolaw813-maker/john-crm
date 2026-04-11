@@ -63,7 +63,10 @@ export function RecordTable({
       size: 40,
       cell: ({ row }) => (
         <button
-          onClick={() => router.push(`/objects/${objectSlug}/${row.original.id}`)}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/objects/${objectSlug}/${row.original.id}`);
+          }}
           className="flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
         >
           <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
@@ -102,10 +105,12 @@ export function RecordTable({
 
         return (
           <div
-            className="cursor-pointer truncate px-1"
-            onClick={() =>
+            className="truncate px-1"
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={() =>
               setEditingCell({ rowId: row.original.id, colId: attr.slug })
             }
+            title="Double-click to edit"
           >
             <AttributeCell
               type={attr.type}
@@ -182,7 +187,8 @@ export function RecordTable({
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
-                className="group/row border-b border-border/50 hover:bg-muted/30 transition-colors"
+                className="group/row cursor-pointer border-b border-border/50 hover:bg-muted/30 transition-colors"
+                onClick={() => router.push(`/objects/${objectSlug}/${row.original.id}`)}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td
