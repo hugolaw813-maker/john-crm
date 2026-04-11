@@ -248,7 +248,13 @@ function SelectEditor({ value, options, isMultiselect, onSave, onCancel }: {
   }
 
   return (
-    <div ref={ref} className="absolute z-50 mt-1 max-h-56 w-56 overflow-auto rounded-md border bg-popover p-1 shadow-lg">
+    <div
+      ref={ref}
+      className="absolute z-50 mt-1 max-h-56 w-56 overflow-auto rounded-md border bg-popover p-1 shadow-lg"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
       {options.map((opt) => {
         const isSelected = isMultiselect
           ? selectedValues.includes(opt.id)
@@ -290,7 +296,13 @@ function StatusEditor({ value, statuses, onSave, onCancel }: {
   }, [onCancel]);
 
   return (
-    <div ref={ref} className="absolute z-50 mt-1 max-h-48 w-48 overflow-auto rounded-md border bg-popover p-1 shadow-lg">
+    <div
+      ref={ref}
+      className="absolute z-50 mt-1 max-h-48 w-48 overflow-auto rounded-md border bg-popover p-1 shadow-lg"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
       {statuses.map((s) => (
         <button
           key={s.id}
@@ -429,7 +441,13 @@ function RecordReferenceEditor({ value, onSave, onCancel }: {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="absolute z-50 mt-1 w-64 rounded-md border bg-popover shadow-lg">
+    <div
+      ref={wrapperRef}
+      className="absolute z-50 mt-1 w-64 rounded-md border bg-popover shadow-lg"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+    >
       <div className="p-1.5 border-b border-border">
         <Input
           ref={ref}
