@@ -155,19 +155,39 @@ function FieldInput({
           />
         </div>
       ) : type === "select" ? (
-        <select
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-          value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value || null)}
-          required={isRequired}
-        >
-          <option value="">Select...</option>
-          {attr.options?.map((opt) => (
-            <option key={opt.id} value={opt.id}>
-              {opt.title}
-            </option>
-          ))}
-        </select>
+        attr.isMultiselect ? (
+          <select
+            multiple
+            className="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+            value={Array.isArray(value) ? (value as string[]) : []}
+            onChange={(e) =>
+              onChange(
+                Array.from(e.target.selectedOptions, (option) => option.value)
+              )
+            }
+            required={isRequired}
+          >
+            {attr.options?.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.title}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            value={(value as string) ?? ""}
+            onChange={(e) => onChange(e.target.value || null)}
+            required={isRequired}
+          >
+            <option value="">Select...</option>
+            {attr.options?.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.title}
+              </option>
+            ))}
+          </select>
+        )
       ) : type === "status" ? (
         <select
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"

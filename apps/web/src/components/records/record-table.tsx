@@ -89,6 +89,7 @@ export function RecordTable({
                 value={val}
                 options={attr.options}
                 statuses={attr.statuses}
+                isMultiselect={attr.isMultiselect}
                 onSave={(newVal) => {
                   onUpdateRecord(row.original.id, attr.slug, newVal);
                   setEditingCell(null);

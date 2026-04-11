@@ -11,6 +11,7 @@ interface AttributeEditorProps {
   value: unknown;
   options?: { id: string; title: string; color: string }[];
   statuses?: { id: string; title: string; color: string; isActive: boolean }[];
+  isMultiselect?: boolean;
   onSave: (value: unknown) => void;
   onCancel: () => void;
 }
@@ -20,6 +21,7 @@ export function AttributeEditor({
   value,
   options,
   statuses,
+  isMultiselect = false,
   onSave,
   onCancel,
 }: AttributeEditorProps) {
@@ -49,7 +51,7 @@ export function AttributeEditor({
       return null;
 
     case "select":
-      return <SelectEditor value={value} options={options || []} onSave={onSave} onCancel={onCancel} />;
+      return <SelectEditor value={value} options={options || []} isMultiselect={isMultiselect} onSave={onSave} onCancel={onCancel} />;
 
     case "status":
       return <StatusEditor value={value as string} statuses={statuses || []} onSave={onSave} onCancel={onCancel} />;
@@ -206,13 +208,21 @@ function RatingEditor({ value, onSave, onCancel }: {
   );
 }
 
-function SelectEditor({ value, options, onSave, onCancel }: {
+function SelectEditor({ value, options, isMultiselect, onSave, onCancel }: {
   value: unknown;
   options: { id: string; title: string; color: string }[];
+  isMultiselect: boolean;
   onSave: (v: unknown) => void;
   onCancel: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [selectedValues, setSelectedValues] = useState<string[]>(
+    Array.isArray(value)
+      ? value.filter((v): v is string => typeof v === "string")
+      : typeof value === "string" && value
+        ? [value]
+        : []
+  );
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -222,22 +232,43 @@ function SelectEditor({ value, options, onSave, onCancel }: {
     return () => document.removeEventListener("mousedown", handle);
   }, [onCancel]);
 
+  function toggleValue(optionId: string) {
+    if (!isMultiselect) {
+      onSave(optionId);
+      return;
+    }
+
+    setSelectedValues((prev) => {
+      const next = prev.includes(optionId)
+        ? prev.filter((id) => id !== optionId)
+        : [...prev, optionId];
+      onSave(next);
+      return next;
+    });
+  }
+
   return (
-    <div ref={ref} className="absolute z-50 mt-1 max-h-48 w-48 overflow-auto rounded-md border bg-popover p-1 shadow-lg">
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          onClick={() => onSave(opt.id)}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
-            value === opt.id && "bg-accent"
-          )}
-        >
-          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
-          {opt.title}
-          {value === opt.id && <Check className="ml-auto h-3.5 w-3.5" />}
-        </button>
-      ))}
+    <div ref={ref} className="absolute z-50 mt-1 max-h-56 w-56 overflow-auto rounded-md border bg-popover p-1 shadow-lg">
+      {options.map((opt) => {
+        const isSelected = isMultiselect
+          ? selectedValues.includes(opt.id)
+          : value === opt.id;
+
+        return (
+          <button
+            key={opt.id}
+            onClick={() => toggleValue(opt.id)}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
+              isSelected && "bg-accent"
+            )}
+          >
+            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+            {opt.title}
+            {isSelected && <Check className="ml-auto h-3.5 w-3.5" />}
+          </button>
+        );
+      })}
     </div>
   );
 }
