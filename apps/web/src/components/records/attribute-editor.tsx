@@ -238,43 +238,83 @@ function SelectEditor({ value, options, isMultiselect, onSave, onCancel }: {
       return;
     }
 
-    setSelectedValues((prev) => {
-      const next = prev.includes(optionId)
+    setSelectedValues((prev) =>
+      prev.includes(optionId)
         ? prev.filter((id) => id !== optionId)
-        : [...prev, optionId];
-      onSave(next);
-      return next;
-    });
+        : [...prev, optionId]
+    );
+  }
+
+  function handleDone() {
+    onSave(selectedValues);
+  }
+
+  function handleClear() {
+    if (isMultiselect) {
+      setSelectedValues([]);
+      return;
+    }
+    onSave(null);
   }
 
   return (
     <div
       ref={ref}
-      className="absolute z-50 mt-1 max-h-56 w-56 overflow-auto rounded-md border bg-popover p-1 shadow-lg"
+      className="absolute z-50 mt-1 w-64 rounded-md border bg-popover p-1 shadow-lg"
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
     >
-      {options.map((opt) => {
-        const isSelected = isMultiselect
-          ? selectedValues.includes(opt.id)
-          : value === opt.id;
+      <div className="max-h-56 overflow-auto">
+        {options.map((opt) => {
+          const isSelected = isMultiselect
+            ? selectedValues.includes(opt.id)
+            : value === opt.id;
 
-        return (
+          return (
+            <button
+              key={opt.id}
+              onClick={() => toggleValue(opt.id)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
+                isSelected && "bg-accent"
+              )}
+            >
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
+              <span className="flex-1 text-left">{opt.title}</span>
+              {isSelected && <Check className="h-3.5 w-3.5 shrink-0" />}
+            </button>
+          );
+        })}
+      </div>
+
+      {isMultiselect && (
+        <div className="mt-1 flex items-center justify-between border-t border-border px-1 pt-1">
           <button
-            key={opt.id}
-            onClick={() => toggleValue(opt.id)}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
-              isSelected && "bg-accent"
-            )}
+            type="button"
+            onClick={handleClear}
+            className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
-            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: opt.color }} />
-            {opt.title}
-            {isSelected && <Check className="ml-auto h-3.5 w-3.5" />}
+            Clear
           </button>
-        );
-      })}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDone}
+              className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:opacity-90"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
