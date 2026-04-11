@@ -17,8 +17,9 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit") || 50), 200);
   const offset = Number(searchParams.get("offset") || 0);
+  const search = searchParams.get("search") || undefined;
 
-  const result = await listRecords(obj.id, { limit, offset });
+  const result = await listRecords(obj.id, { limit, offset, search });
 
   return success({
     records: result.records,

@@ -270,9 +270,15 @@ async function hydrateRecords(
 
 export async function listRecords(
   objectId: string,
-  options: { limit?: number; offset?: number; filter?: FilterGroup; sorts?: SortConfig[] } = {}
+  options: {
+    limit?: number;
+    offset?: number;
+    filter?: FilterGroup;
+    sorts?: SortConfig[];
+    search?: string;
+  } = {}
 ) {
-  const { limit = 50, offset = 0, filter, sorts } = options;
+  const { limit = 50, offset = 0, filter, sorts, search } = options;
 
   const { byId, bySlug } = await loadAttributes(objectId);
 
@@ -285,12 +291,26 @@ export async function listRecords(
   // Build filter SQL
   const filterSQL = filter ? buildFilterSQL(filter, attrMap) : undefined;
 
+  const trimmedSearch = search?.trim();
+  const searchSQL = trimmedSearch
+    ? sql`exists (
+        select 1
+        from ${recordValues}
+        where ${recordValues.recordId} = ${records.id}
+          and (
+            ${recordValues.textValue} ILIKE ${`%${trimmedSearch}%`}
+            or ${recordValues.jsonValue}::text ILIKE ${`%${trimmedSearch}%`}
+          )
+      )`
+    : undefined;
+
   // Build sort expressions
   const sortExprs = sorts ? buildSortExpressions(sorts, attrMap) : [];
 
-  // Combined WHERE: objectId + optional filter
+  // Combined WHERE: objectId + optional filter/search
   const baseWhere = eq(records.objectId, objectId);
-  const whereClause = filterSQL ? and(baseWhere, filterSQL) : baseWhere;
+  const predicates = [baseWhere, filterSQL, searchSQL].filter(Boolean) as SQL[];
+  const whereClause = predicates.length === 1 ? predicates[0] : and(...predicates)!;
 
   // Build query
   const query = db

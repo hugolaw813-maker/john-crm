@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { FilterGroup, SortConfig } from "@openclaw-crm/shared";
 
 interface AttributeDef {
@@ -36,11 +36,14 @@ export function useObjectRecords(slug: string) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Filter & sort state
+  // Search, filter & sort state
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState<FilterGroup>(EMPTY_FILTER);
   const [sorts, setSorts] = useState<SortConfig[]>([]);
 
-  // Track whether filter/sort have active values
+  // Track whether search/filter/sort have active values
+  const hasSearch = debouncedSearch.trim().length > 0;
   const hasFilter = filter.conditions.length > 0;
   const hasSort = sorts.length > 0;
 
@@ -57,17 +60,26 @@ export function useObjectRecords(slug: string) {
     return () => { cancelled = true; };
   }, [slug]);
 
-  // Fetch records when slug, filter, or sorts change
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  // Fetch records when slug, search, filter, or sorts change
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
       let recData: any;
-      if (hasFilter || hasSort) {
+      if (hasFilter || hasSort || hasSearch) {
         const queryRes = await fetch(`/api/v1/objects/${slug}/records/query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             limit: 200,
+            ...(hasSearch ? { search: debouncedSearch } : {}),
             ...(hasFilter ? { filter } : {}),
             ...(hasSort ? { sorts } : {}),
           }),
@@ -76,7 +88,8 @@ export function useObjectRecords(slug: string) {
           recData = await queryRes.json();
         }
       } else {
-        const recRes = await fetch(`/api/v1/objects/${slug}/records?limit=200`);
+        const params = new URLSearchParams({ limit: "200" });
+        const recRes = await fetch(`/api/v1/objects/${slug}/records?${params.toString()}`);
         if (recRes.ok) {
           recData = await recRes.json();
         }
@@ -89,7 +102,7 @@ export function useObjectRecords(slug: string) {
     } finally {
       setLoading(false);
     }
-  }, [slug, filter, sorts, hasFilter, hasSort]);
+  }, [slug, filter, sorts, debouncedSearch, hasSearch, hasFilter, hasSort]);
 
   useEffect(() => {
     fetchRecords();
@@ -157,7 +170,10 @@ export function useObjectRecords(slug: string) {
     updateRecord,
     createRecord,
     setRecords,
-    // Filter/sort
+    // Search/filter/sort
+    search,
+    setSearch,
+    hasSearch,
     filter,
     setFilter,
     sorts,

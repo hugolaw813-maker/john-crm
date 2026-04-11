@@ -5,8 +5,8 @@ import { listRecords, assertRecord } from "@/services/records";
 import type { FilterGroup, SortConfig } from "@openclaw-crm/shared";
 
 /** POST /api/v1/objects/[slug]/records/query
- *  Body: { limit?, offset?, filter?, sorts? }
- *  Supports compound AND/OR filters and multi-column sorting.
+ *  Body: { limit?, offset?, filter?, sorts?, search? }
+ *  Supports compound AND/OR filters, free-text search, and multi-column sorting.
  */
 export async function POST(
   req: NextRequest,
@@ -35,11 +35,12 @@ export async function POST(
     return success(record, 200);
   }
 
-  // Parse filter and sorts
+  // Parse filter, search, and sorts
   const filter: FilterGroup | undefined = body.filter;
   const sorts: SortConfig[] | undefined = body.sorts;
+  const search: string | undefined = typeof body.search === "string" ? body.search : undefined;
 
-  const result = await listRecords(obj.id, { limit, offset, filter, sorts });
+  const result = await listRecords(obj.id, { limit, offset, filter, sorts, search });
 
   return success({
     records: result.records,
