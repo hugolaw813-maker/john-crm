@@ -49,7 +49,7 @@ export const STANDARD_OBJECTS: StandardObject[] = [
       { slug: "description", title: "Description", type: "text", isSystem: true, isRequired: false, isUnique: false, isMultiselect: false },
       { slug: "team", title: "Team", type: "record_reference", isSystem: true, isRequired: false, isUnique: false, isMultiselect: true, config: { targetObjectSlug: "people" } },
       { slug: "primary_location", title: "Primary Location", type: "location", isSystem: true, isRequired: false, isUnique: false, isMultiselect: false },
-      { slug: "categories", title: "Categories", type: "select", isSystem: true, isRequired: false, isUnique: false, isMultiselect: true },
+      { slug: "type", title: "Type", type: "text", isSystem: true, isRequired: false, isUnique: false, isMultiselect: false },
     ],
   },
   {

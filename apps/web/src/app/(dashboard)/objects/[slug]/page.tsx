@@ -67,14 +67,16 @@ export default function ObjectPage() {
     if (!object) return [];
     if (slug !== "companies") return object.attributes;
 
-    const priority = ["name", "team"];
-    return [...object.attributes].sort((a, b) => {
-      const aIndex = priority.indexOf(a.slug);
-      const bIndex = priority.indexOf(b.slug);
-      const aRank = aIndex === -1 ? priority.length : aIndex;
-      const bRank = bIndex === -1 ? priority.length : bIndex;
-      return aRank - bRank;
-    });
+    const priority = ["name", "type", "team"];
+    return [...object.attributes]
+      .filter((attr) => attr.slug !== "categories")
+      .sort((a, b) => {
+        const aIndex = priority.indexOf(a.slug);
+        const bIndex = priority.indexOf(b.slug);
+        const aRank = aIndex === -1 ? priority.length : aIndex;
+        const bRank = bIndex === -1 ? priority.length : bIndex;
+        return aRank - bRank;
+      });
   }, [object, slug]);
 
   // Auto-detect if board view is available (has a status attribute)
