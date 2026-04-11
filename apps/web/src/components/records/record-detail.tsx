@@ -51,6 +51,7 @@ export function RecordDetail({ attributes, values, onUpdate }: RecordDetailProps
                   value={val}
                   options={attr.options}
                   statuses={attr.statuses}
+                  isMultiselect={attr.isMultiselect}
                   onSave={(newVal) => {
                     onUpdate(attr.slug, newVal);
                     setEditingSlug(null);
