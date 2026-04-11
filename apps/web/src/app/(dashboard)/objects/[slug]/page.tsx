@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useObjectRecords } from "@/hooks/use-object-records";
 import { RecordTable } from "@/components/records/record-table";
@@ -62,6 +62,20 @@ export default function ObjectPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+
+  const displayAttributes = useMemo(() => {
+    if (!object) return [];
+    if (slug !== "companies") return object.attributes;
+
+    const priority = ["name", "team"];
+    return [...object.attributes].sort((a, b) => {
+      const aIndex = priority.indexOf(a.slug);
+      const bIndex = priority.indexOf(b.slug);
+      const aRank = aIndex === -1 ? priority.length : aIndex;
+      const bRank = bIndex === -1 ? priority.length : bIndex;
+      return aRank - bRank;
+    });
+  }, [object, slug]);
 
   // Auto-detect if board view is available (has a status attribute)
   const statusAttr = object?.attributes.find((a) => a.type === "status");
@@ -139,7 +153,7 @@ export default function ObjectPage() {
             }
           >
             <FilterBuilder
-              attributes={object.attributes as any}
+              attributes={displayAttributes as any}
               filter={filter}
               onChange={setFilter}
               onClose={() => setFilterOpen(false)}
@@ -171,7 +185,7 @@ export default function ObjectPage() {
             }
           >
             <SortBuilder
-              attributes={object.attributes as any}
+              attributes={displayAttributes as any}
               sorts={sorts}
               onChange={setSorts}
               onClose={() => setSortOpen(false)}
@@ -214,7 +228,7 @@ export default function ObjectPage() {
             size="sm"
             className="text-xs gap-1"
             onClick={() => {
-              const csv = generateCSV(records, object.attributes as any);
+              const csv = generateCSV(records, displayAttributes as any);
               downloadCSV(csv, `${object.pluralName.toLowerCase()}.csv`);
             }}
           >
@@ -259,7 +273,7 @@ export default function ObjectPage() {
         <div className="border-b border-border/50 px-4 py-1.5">
           <FilterBar
             filter={filter}
-            attributes={object.attributes as any}
+            attributes={displayAttributes as any}
             onRemoveCondition={removeFilterCondition}
             onClearAll={clearFilters}
           />
@@ -271,7 +285,7 @@ export default function ObjectPage() {
         <div className="border-b border-border/50 px-4 py-1.5 flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Sorted by:</span>
           {sorts.map((sort, i) => {
-            const attr = object.attributes.find((a) => a.slug === sort.attribute);
+            const attr = displayAttributes.find((a) => a.slug === sort.attribute);
             return (
               <span key={i} className="text-xs">
                 {i > 0 && <span className="text-muted-foreground mr-1">,</span>}
@@ -295,7 +309,7 @@ export default function ObjectPage() {
       <div className="flex-1 overflow-hidden">
         {view === "table" ? (
           <RecordTable
-            attributes={object.attributes as any}
+            attributes={displayAttributes as any}
             records={records}
             onUpdateRecord={updateRecord}
             onCreateRecord={() => setCreateOpen(true)}
@@ -318,7 +332,7 @@ export default function ObjectPage() {
           />
         ) : (
           <RecordKanban
-            attributes={object.attributes as any}
+            attributes={displayAttributes as any}
             records={records}
             statusAttributeSlug={statusAttr!.slug}
             onMoveRecord={(recordId, newStatusId) =>
@@ -356,7 +370,7 @@ export default function ObjectPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={createRecord}
-        attributes={object.attributes as any}
+        attributes={displayAttributes as any}
         objectName={object.singularName}
       />
 
@@ -366,7 +380,7 @@ export default function ObjectPage() {
         onClose={() => setImportOpen(false)}
         objectSlug={slug}
         objectName={object.singularName}
-        attributes={object.attributes as any}
+        attributes={displayAttributes as any}
         onImportComplete={fetchData}
       />
     </div>

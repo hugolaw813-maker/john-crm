@@ -16,6 +16,12 @@ interface AttributeInfo {
   isMultiselect: boolean;
 }
 
+interface RecordReferenceValue {
+  id: string;
+  displayName: string;
+  objectSlug: string;
+}
+
 /** Flat record with values keyed by attribute slug */
 export interface FlatRecord {
   id: string;
@@ -268,6 +274,108 @@ async function hydrateRecords(
 
 // ─── CRUD ────────────────────────────────────────────────────────────
 
+async function enrichCompanyRecordsWithMembers(
+  objectId: string,
+  flatRecords: FlatRecord[]
+) {
+  if (flatRecords.length === 0) return flatRecords;
+
+  const [currentObject] = await db
+    .select({ id: objects.id, slug: objects.slug, workspaceId: objects.workspaceId })
+    .from(objects)
+    .where(eq(objects.id, objectId))
+    .limit(1);
+
+  if (!currentObject || currentObject.slug !== "companies") {
+    return flatRecords;
+  }
+
+  const [peopleObject] = await db
+    .select({ id: objects.id })
+    .from(objects)
+    .where(
+      and(
+        eq(objects.workspaceId, currentObject.workspaceId),
+        eq(objects.slug, "people")
+      )
+    )
+    .limit(1);
+
+  if (!peopleObject) return flatRecords;
+
+  const [companyAttribute] = await db
+    .select({ id: attributes.id })
+    .from(attributes)
+    .where(
+      and(
+        eq(attributes.objectId, peopleObject.id),
+        eq(attributes.slug, "company")
+      )
+    )
+    .limit(1);
+
+  if (!companyAttribute) return flatRecords;
+
+  const companyIds = flatRecords.map((record) => record.id);
+
+  const links = await db
+    .select({
+      personId: recordValues.recordId,
+      companyId: recordValues.referencedRecordId,
+    })
+    .from(recordValues)
+    .where(
+      and(
+        eq(recordValues.attributeId, companyAttribute.id),
+        inArray(recordValues.referencedRecordId, companyIds)
+      )
+    );
+
+  if (links.length === 0) return flatRecords;
+
+  const personIds = [...new Set(links.map((link) => link.personId))];
+  const personNameMap = await batchGetRecordDisplayNames(personIds);
+  const membersByCompany = new Map<string, RecordReferenceValue[]>();
+
+  for (const link of links) {
+    if (!link.companyId) continue;
+    const personInfo = personNameMap.get(link.personId);
+    const member: RecordReferenceValue = {
+      id: link.personId,
+      displayName: personInfo?.displayName || "Unnamed",
+      objectSlug: personInfo?.objectSlug || "people",
+    };
+
+    const current = membersByCompany.get(link.companyId) || [];
+    current.push(member);
+    membersByCompany.set(link.companyId, current);
+  }
+
+  return flatRecords.map((record) => {
+    const existingTeam = Array.isArray(record.values.team)
+      ? (record.values.team as RecordReferenceValue[])
+      : [];
+    const derivedTeam = membersByCompany.get(record.id) || [];
+
+    if (existingTeam.length === 0 && derivedTeam.length === 0) {
+      return record;
+    }
+
+    const merged = new Map<string, RecordReferenceValue>();
+    for (const member of [...existingTeam, ...derivedTeam]) {
+      if (member?.id) merged.set(member.id, member);
+    }
+
+    return {
+      ...record,
+      values: {
+        ...record.values,
+        team: Array.from(merged.values()),
+      },
+    };
+  });
+}
+
 export async function listRecords(
   objectId: string,
   options: {
@@ -344,8 +452,11 @@ export async function listRecords(
     .from(records)
     .where(whereClause);
 
+  const hydratedRecords = await hydrateRecords(recordRows, valueRows, byId);
+  const enrichedRecords = await enrichCompanyRecordsWithMembers(objectId, hydratedRecords);
+
   return {
-    records: await hydrateRecords(recordRows, valueRows, byId),
+    records: enrichedRecords,
     total: Number(countResult.count),
   };
 }
@@ -366,7 +477,9 @@ export async function getRecord(objectId: string, recordId: string) {
     .from(recordValues)
     .where(eq(recordValues.recordId, recordId));
 
-  return (await hydrateRecords(recordRows, valueRows, byId))[0];
+  const hydratedRecord = (await hydrateRecords(recordRows, valueRows, byId))[0];
+  const [enrichedRecord] = await enrichCompanyRecordsWithMembers(objectId, [hydratedRecord]);
+  return enrichedRecord;
 }
 
 export async function createRecord(
