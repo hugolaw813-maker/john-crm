@@ -6,6 +6,7 @@ import { workspaces } from "./workspace";
 export const tasks = pgTable("tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   content: text("content").notNull(),
+  sourceNoteId: text("source_note_id"),
   deadline: timestamp("deadline"),
   priority: text("priority").notNull().default("medium"),
   isCompleted: boolean("is_completed").notNull().default(false),

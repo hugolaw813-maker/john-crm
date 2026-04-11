@@ -17,6 +17,10 @@ import {
   Building2,
   Handshake,
   Box,
+  Phone,
+  NotebookPen,
+  Plus,
+  CheckSquare,
 } from "lucide-react";
 import { extractPersonalName } from "@/lib/display-name";
 
@@ -58,6 +62,12 @@ export default function RecordDetailPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState("attributes");
+  const [noteComposeRequest, setNoteComposeRequest] = useState<{
+    token: number;
+    noteType: "call" | "meeting" | "note";
+  } | null>(null);
+  const [taskComposeToken, setTaskComposeToken] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -145,6 +155,17 @@ export default function RecordDetailPage() {
   }
 
   const ObjIcon = iconMap[object.icon] || Box;
+  const isPeopleRecord = slug === "people";
+
+  function openNoteAction(noteType: "call" | "meeting" | "note") {
+    setActiveTab("notes");
+    setNoteComposeRequest({ token: Date.now(), noteType });
+  }
+
+  function openTaskAction() {
+    setActiveTab("tasks");
+    setTaskComposeToken(Date.now());
+  }
 
   return (
     <div className="flex h-full">
@@ -168,22 +189,44 @@ export default function RecordDetailPage() {
           </div>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold">{displayName}</h1>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="mr-1 h-4 w-4" />
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {isPeopleRecord && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => openNoteAction("call")}>
+                    <Phone className="mr-1 h-4 w-4" />
+                    Log Call
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openNoteAction("meeting")}>
+                    <NotebookPen className="mr-1 h-4 w-4" />
+                    Log Meeting
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openNoteAction("note")}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add Note
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={openTaskAction}>
+                    <CheckSquare className="mr-1 h-4 w-4" />
+                    Add Task
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="mr-1 h-4 w-4" />
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="px-6 py-4">
-          <Tabs defaultValue="attributes">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="attributes">Attributes</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -215,11 +258,21 @@ export default function RecordDetailPage() {
             </TabsContent>
 
             <TabsContent value="notes">
-              <RecordNotes objectSlug={slug} recordId={recordId} />
+              <RecordNotes
+                objectSlug={slug}
+                recordId={recordId}
+                composeRequest={noteComposeRequest || undefined}
+                onAddTask={openTaskAction}
+              />
             </TabsContent>
 
             <TabsContent value="tasks">
-              <RecordTasks objectSlug={slug} recordId={recordId} />
+              <RecordTasks
+                objectSlug={slug}
+                recordId={recordId}
+                recordDisplayName={displayName}
+                openRequestToken={taskComposeToken}
+              />
             </TabsContent>
 
             <TabsContent value="activity">

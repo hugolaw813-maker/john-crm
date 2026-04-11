@@ -6,8 +6,10 @@ import { batchGetRecordDisplayNames } from "./display-names";
 export interface NoteData {
   id: string;
   recordId: string;
+  noteType: string;
   title: string;
   content: unknown;
+  linkedTaskId: string | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -106,18 +108,34 @@ export async function createNote(
   recordId: string,
   title: string,
   content: unknown,
-  createdBy: string | null
+  createdBy: string | null,
+  options: {
+    noteType?: string;
+    linkedTaskId?: string | null;
+  } = {}
 ) {
   const [note] = await db
     .insert(notes)
-    .values({ recordId, title, content, createdBy })
+    .values({
+      recordId,
+      title,
+      content,
+      createdBy,
+      noteType: options.noteType || "note",
+      linkedTaskId: options.linkedTaskId || null,
+    })
     .returning();
   return note;
 }
 
 export async function updateNote(
   noteId: string,
-  updates: { title?: string; content?: unknown }
+  updates: {
+    title?: string;
+    content?: unknown;
+    noteType?: string;
+    linkedTaskId?: string | null;
+  }
 ) {
   const [note] = await db
     .update(notes)

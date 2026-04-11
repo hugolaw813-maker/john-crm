@@ -22,6 +22,7 @@ interface RecordTasksProps {
   objectSlug: string;
   recordId: string;
   recordDisplayName?: string;
+  openRequestToken?: number;
 }
 
 function getRelativeDate(deadline: string): {
@@ -41,6 +42,7 @@ export function RecordTasks({
   objectSlug,
   recordId,
   recordDisplayName,
+  openRequestToken,
 }: RecordTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +80,11 @@ export function RecordTasks({
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!openRequestToken) return;
+    openCreateDialog();
+  }, [openRequestToken]);
 
   async function toggleComplete(taskId: string, isCompleted: boolean) {
     setTasks((prev) =>

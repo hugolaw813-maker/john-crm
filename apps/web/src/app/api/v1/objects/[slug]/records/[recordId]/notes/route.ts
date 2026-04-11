@@ -44,7 +44,11 @@ export async function POST(
     recordId,
     body.title || "",
     body.content || null,
-    ctx.userId
+    ctx.userId,
+    {
+      noteType: body.noteType || "note",
+      linkedTaskId: body.linkedTaskId || null,
+    }
   );
 
   return success(note, 201);

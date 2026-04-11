@@ -9,8 +9,10 @@ export const notes = pgTable(
     recordId: text("record_id")
       .notNull()
       .references(() => records.id, { onDelete: "cascade" }),
+    noteType: text("note_type").notNull().default("note"),
     title: text("title").notNull().default(""),
     content: jsonb("content"), // TipTap JSON format
+    linkedTaskId: text("linked_task_id"),
     createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

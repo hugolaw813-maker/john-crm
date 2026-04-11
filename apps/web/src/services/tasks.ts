@@ -10,6 +10,7 @@ import { batchGetRecordDisplayNames } from "./display-names";
 export interface TaskData {
   id: string;
   content: string;
+  sourceNoteId: string | null;
   deadline: Date | null;
   priority: string;
   isCompleted: boolean;
@@ -77,6 +78,7 @@ async function enrichTasks(
   return taskRows.map((t) => ({
     id: t.id,
     content: t.content,
+    sourceNoteId: t.sourceNoteId,
     deadline: t.deadline,
     priority: t.priority,
     isCompleted: t.isCompleted,
@@ -151,6 +153,7 @@ export async function createTask(
     priority?: string;
     recordIds?: string[];
     assigneeIds?: string[];
+    sourceNoteId?: string | null;
   } = {}
 ) {
   const [task] = await db
@@ -159,6 +162,7 @@ export async function createTask(
       content,
       createdBy,
       workspaceId,
+      sourceNoteId: options.sourceNoteId || null,
       deadline: options.deadline ? new Date(options.deadline) : null,
       priority: options.priority || "medium",
     })

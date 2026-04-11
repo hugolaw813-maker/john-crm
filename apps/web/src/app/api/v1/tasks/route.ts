@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       priority: body.priority as string | undefined,
       recordIds: body.recordIds as string[] | undefined,
       assigneeIds: body.assigneeIds as string[] | undefined,
+      sourceNoteId: body.sourceNoteId as string | undefined,
     });
 
     return success(task, 201);
