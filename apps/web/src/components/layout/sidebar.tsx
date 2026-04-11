@@ -22,6 +22,8 @@ import {
   Check,
   Sun,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -72,9 +74,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [pinnedOpen, setPinnedOpen] = useState(false);
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("openclaw-sidebar-pinned");
+      const isPinned = saved === "true";
+      setPinnedOpen(isPinned);
+      setExpanded(isPinned);
+    } catch {}
+
     fetch("/api/v1/lists")
       .then((res) => res.json())
       .then((data) => {
@@ -97,6 +107,17 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       })
       .catch(() => {});
   }, []);
+
+  function togglePinnedOpen() {
+    setPinnedOpen((prev) => {
+      const next = !prev;
+      setExpanded(next);
+      try {
+        localStorage.setItem("openclaw-sidebar-pinned", String(next));
+      } catch {}
+      return next;
+    });
+  }
 
   async function switchWorkspace(ws: Workspace) {
     const res = await fetch("/api/v1/workspaces/switch", {
@@ -126,8 +147,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
+      onMouseEnter={() => {
+        if (!pinnedOpen) setExpanded(true);
+      }}
+      onMouseLeave={() => {
+        if (!pinnedOpen) setExpanded(false);
+      }}
       className={cn(
         "flex h-full flex-col border-r border-sidebar-border bg-sidebar sidebar-glass transition-all duration-200 ease-out overflow-hidden",
         expanded ? "w-56" : "w-12"
@@ -256,9 +281,26 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           />
         ))}
 
+        <button
+          onClick={togglePinnedOpen}
+          title={!expanded ? (pinnedOpen ? "Unpin sidebar" : "Pin sidebar open") : undefined}
+          className={cn(
+            "flex w-full items-center rounded-lg py-1.5 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            expanded ? "gap-2.5 px-2.5" : "justify-center px-0"
+          )}
+        >
+          {pinnedOpen ? (
+            <PanelLeftClose className="h-4 w-4 shrink-0" />
+          ) : (
+            <PanelLeftOpen className="h-4 w-4 shrink-0" />
+          )}
+          {expanded && <span>{pinnedOpen ? "Auto-collapse sidebar" : "Keep sidebar open"}</span>}
+        </button>
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          title={!expanded ? (theme === "dark" ? "Light mode" : "Dark mode") : undefined}
           className={cn(
             "flex w-full items-center rounded-lg py-1.5 text-sm transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
             expanded ? "gap-2.5 px-2.5" : "justify-center px-0"
