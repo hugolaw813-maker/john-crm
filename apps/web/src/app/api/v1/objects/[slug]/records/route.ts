@@ -38,13 +38,25 @@ export async function POST(
   const obj = await getObjectBySlug(ctx.workspaceId, slug);
   if (!obj) return notFound("Object not found");
 
-  const body = await req.json();
-  const { values } = body;
+  try {
+    const body = await req.json();
+    console.log('[DEBUG API POST] body:', JSON.stringify(body));
+    const { values } = body;
 
-  if (!values || typeof values !== "object") {
-    return badRequest("values object is required");
+    if (!values || typeof values !== "object") {
+      return badRequest("values object is required");
+    }
+
+    console.log('[DEBUG API POST] creating record with values:', JSON.stringify(values));
+    const record = await createRecord(obj.id, values, ctx.userId);
+    console.log('[DEBUG API POST] record created:', record.id);
+    return success(record, 201);
+  } catch (error: any) {
+    console.error('[DEBUG API POST] error:', error);
+    console.error('[DEBUG API POST] error stack:', error.stack);
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
-
-  const record = await createRecord(obj.id, values, ctx.userId);
-  return success(record, 201);
 }

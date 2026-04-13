@@ -1,15 +1,17 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026_
+_Last updated: April 13, 2026 (18:20 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
 
 ## Next Tasks (in order)
-1. [ ] **Verify relationship integrity** — Run verification scripts in `scripts/migrations/` to confirm person/company/task links are consistent
-2. [ ] **Resolve any broken links** — Fix records that fail verification (use or create targeted migration scripts in `scripts/migrations/`)
-3. [ ] **Test Railway deployment** — Verify `Dockerfile.railway` and `railway.json` work for staging/production push
-4. [ ] **UI/UX polish** — Fix any edge cases in record cards, multiselect categories, and group member derivation
+1. [ ] **Test person creation fix** — Verify foreign key constraint fix works; person creation should save successfully
+2. [ ] **Add inline group creation to record picker** — Enhance RecordReferencePicker component to support "create new" for groups (or implement workaround)
+3. [ ] **Verify relationship integrity** — Run verification scripts in `scripts/migrations/` to confirm person/company/task links are consistent
+4. [ ] **Resolve any broken links** — Fix records that fail verification (use or create targeted migration scripts in `scripts/migrations/`)
+5. [ ] **Test Railway deployment** — Verify `Dockerfile.railway` and `railway.json` work for staging/production push
+6. [ ] **UI/UX polish** — Fix any edge cases in record cards, multiselect categories, and group member derivation
 
 ## Blockers
 - None
@@ -24,7 +26,12 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ Middleware, AI chat, and record services updated
 - ✅ All migration and debug scripts organized into `scripts/migrations/`
 - ✅ Railway deployment files (`Dockerfile.railway`, `railway.json`) added
-- ✅ Working tree committed and clean
+- ✅ **Data integrity restoration (April 13)**: Cleaned 21 Person records (removed Household/Family suffixes), established Person↔Group bidirectional links
+- ✅ **People attribute updates**: Added Type, Owner, Co-Work fields; deleted Job Title; renamed Location→Address
+- ✅ **Frontend slug fixes**: Updated 12 files from `companies` → `groups` slug
+- ✅ **Backup system implemented**: Python-based backup with daily cron scheduling
+- ✅ **UI verification**: Groups table shows people lists, People table shows clean names with Address column
+- ✅ **Foreign key constraint fix**: Updated authentication dev bypass to use real user ID, fixed `records_created_by_users_id_fk` violation
 
 ## Running Locally
 ```bash

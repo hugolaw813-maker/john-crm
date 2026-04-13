@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { workspaceMembers, apiKeys, workspaces } from "@/db/schema";
+import { workspaceMembers, apiKeys, workspaces, users } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { createHash } from "crypto";
 
@@ -24,6 +24,7 @@ function hashApiKey(key: string): string {
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
   // 0. Development bypass
   if (process.env.DISABLE_AUTH === "true") {
+    console.log('[DEBUG] DISABLE_AUTH enabled, using dev bypass');
     // Return a dummy auth context for development
     let workspaceId = req.cookies.get("active-workspace-id")?.value;
     if (!workspaceId) {
@@ -32,10 +33,20 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
     }
     if (!workspaceId) {
       // No workspace exists, can't create one here
+      console.log('[DEBUG] No workspace found');
       return null;
     }
+    // Get the first user from the database for dev
+    const userRows = await db.select().from(users).limit(1);
+    const userId = userRows.length > 0 ? userRows[0].id : null;
+    if (!userId) {
+      // No user exists
+      console.log('[DEBUG] No user found');
+      return null;
+    }
+    console.log('[DEBUG] Dev bypass returning userId:', userId, 'workspaceId:', workspaceId);
     return {
-      userId: "dev-user",
+      userId,
       workspaceId,
       workspaceRole: "admin",
       authMethod: "cookie"

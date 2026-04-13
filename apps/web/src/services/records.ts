@@ -90,7 +90,9 @@ function buildValueRow(
   sortOrder: number,
   createdBy: string | null
 ): typeof recordValues.$inferInsert | null {
+  console.log('[DEBUG buildValueRow] attr:', attrInfo.slug, 'type:', attrInfo.type, 'value:', JSON.stringify(value));
   const column = ATTRIBUTE_TYPE_COLUMN_MAP[attrInfo.type];
+  console.log('[DEBUG buildValueRow] column:', column);
   const base: typeof recordValues.$inferInsert = {
     recordId,
     attributeId: attrInfo.id,
@@ -116,11 +118,13 @@ function buildValueRow(
       break;
     case "json_value":
       base.jsonValue = value;
+      console.log('[DEBUG buildValueRow] json_value set:', JSON.stringify(value));
       break;
     case "referenced_record_id": {
       const id = value as string;
       // Validate UUID format to prevent FK violations
       if (!id || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+        console.log('[DEBUG buildValueRow] invalid reference id:', id);
         return null; // Skip invalid record references
       }
       base.referencedRecordId = id;
@@ -128,6 +132,7 @@ function buildValueRow(
     }
   }
 
+  console.log('[DEBUG buildValueRow] returning row');
   return base;
 }
 
@@ -487,16 +492,20 @@ export async function createRecord(
   input: Record<string, unknown>,
   createdBy: string | null
 ) {
+  console.log('[DEBUG createRecord] objectId:', objectId, 'input:', JSON.stringify(input), 'createdBy:', createdBy);
   const { bySlug } = await loadAttributes(objectId);
+  console.log('[DEBUG createRecord] loaded attributes:', Array.from(bySlug.keys()));
 
   // Insert record row
   const [record] = await db
     .insert(records)
     .values({ objectId, createdBy })
     .returning();
+  console.log('[DEBUG createRecord] inserted record:', record.id);
 
   // Insert value rows
   await writeValues(record.id, input, bySlug, createdBy);
+  console.log('[DEBUG createRecord] values written');
 
   // Return hydrated
   return getRecord(objectId, record.id);
@@ -567,12 +576,20 @@ async function writeValues(
   bySlug: Map<string, AttributeInfo>,
   createdBy: string | null
 ) {
+  console.log('[DEBUG writeValues] recordId:', recordId, 'input keys:', Object.keys(input), 'createdBy:', createdBy);
   const rows: (typeof recordValues.$inferInsert)[] = [];
 
   for (const [slug, value] of Object.entries(input)) {
     const attrInfo = bySlug.get(slug);
-    if (!attrInfo) continue;
-    if (value === null || value === undefined) continue;
+    if (!attrInfo) {
+      console.log('[DEBUG writeValues] skipping unknown slug:', slug);
+      continue;
+    }
+    if (value === null || value === undefined) {
+      console.log('[DEBUG writeValues] skipping null value for:', slug);
+      continue;
+    }
+    console.log('[DEBUG writeValues] processing:', slug, 'type:', attrInfo.type, 'value:', JSON.stringify(value));
 
     if (attrInfo.isMultiselect && Array.isArray(value)) {
       for (let i = 0; i < value.length; i++) {
@@ -585,8 +602,12 @@ async function writeValues(
     }
   }
 
+  console.log('[DEBUG writeValues] built', rows.length, 'rows');
   if (rows.length > 0) {
     await db.insert(recordValues).values(rows);
+    console.log('[DEBUG writeValues] inserted values');
+  } else {
+    console.log('[DEBUG writeValues] no rows to insert');
   }
 }
 
