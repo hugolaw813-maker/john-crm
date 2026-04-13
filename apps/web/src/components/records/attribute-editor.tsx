@@ -438,11 +438,14 @@ function RecordReferenceEditor({ value, config = {}, onSave, onCancel }: {
   useEffect(() => {
     ref.current?.focus();
     // Load initial results
-    fetch("/api/v1/records/browse?limit=15")
+    const url = targetObjectSlug
+      ? `/api/v1/records/browse?limit=15&objectSlug=${targetObjectSlug}`
+      : "/api/v1/records/browse?limit=15";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => setResults(data.data || []))
       .catch(() => {});
-  }, []);
+  }, [targetObjectSlug]);
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -455,7 +458,10 @@ function RecordReferenceEditor({ value, config = {}, onSave, onCancel }: {
   const search = useCallback((q: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (!q.trim()) {
-      fetch("/api/v1/records/browse?limit=15")
+      const url = targetObjectSlug
+        ? `/api/v1/records/browse?limit=15&objectSlug=${targetObjectSlug}`
+        : "/api/v1/records/browse?limit=15";
+      fetch(url)
         .then((r) => r.json())
         .then((data) => setResults(data.data || []))
         .catch(() => {});
@@ -464,7 +470,10 @@ function RecordReferenceEditor({ value, config = {}, onSave, onCancel }: {
     setLoading(true);
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=15`);
+        const url = targetObjectSlug
+          ? `/api/v1/search?q=${encodeURIComponent(q)}&limit=15&objectSlug=${targetObjectSlug}`
+          : `/api/v1/search?q=${encodeURIComponent(q)}&limit=15`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setResults(
@@ -484,7 +493,7 @@ function RecordReferenceEditor({ value, config = {}, onSave, onCancel }: {
         setLoading(false);
       }
     }, 250);
-  }, []);
+  }, [targetObjectSlug]);
 
   const handleCreateNew = async () => {
     if (!newRecordName.trim() || !targetObjectSlug) return;

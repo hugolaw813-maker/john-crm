@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (19:42 EDT)_
+_Last updated: April 13, 2026 (19:50 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -38,6 +38,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Inline group creation**: Added 'Create new group' button to record reference picker for company field; config now passed to AttributeEditor
 - ✅ **Groups cleanup**: Deleted 16 groups from 'Jahborn Riley Group' down alphabetically (7 groups remain); later deleted all remaining groups (0 groups total)
 - ✅ **Groups column rename**: Changed 'Name' column title to 'Group', 'Team' column title to 'Members'
+- ✅ **Group field filtering**: Updated RecordReferenceEditor to filter records by target object slug (groups only), no longer showing people and other lists
 
 ## Running Locally
 ```bash
