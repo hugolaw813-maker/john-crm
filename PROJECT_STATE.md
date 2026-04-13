@@ -6,12 +6,13 @@ _Last updated: April 13, 2026 (18:20 EDT)_
 Fix relationship / data integrity and finish migration cleanup
 
 ## Next Tasks (in order)
-1. [ ] **Test person creation fix** — Verify foreign key constraint fix works; person creation should save successfully
-2. [ ] **Add inline group creation to record picker** — Enhance RecordReferencePicker component to support "create new" for groups (or implement workaround)
+1. [x] **Test person creation fix** — Verified foreign key constraint fix works; person creation saves successfully (API tested)
+2. [x] **Add inline group creation to record picker** — Implemented 'Create new group' button in RecordReferenceEditor; config passed
 3. [ ] **Verify relationship integrity** — Run verification scripts in `scripts/migrations/` to confirm person/company/task links are consistent
 4. [ ] **Resolve any broken links** — Fix records that fail verification (use or create targeted migration scripts in `scripts/migrations/`)
 5. [ ] **Test Railway deployment** — Verify `Dockerfile.railway` and `railway.json` work for staging/production push
 6. [ ] **UI/UX polish** — Fix any edge cases in record cards, multiselect categories, and group member derivation
+7. [ ] **Test UI fixes** — Verify type selection works and group creation button appears in person edit
 
 ## Blockers
 - None
@@ -32,6 +33,8 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Backup system implemented**: Python-based backup with daily cron scheduling
 - ✅ **UI verification**: Groups table shows people lists, People table shows clean names with Address column
 - ✅ **Foreign key constraint fix**: Updated authentication dev bypass to use real user ID, fixed `records_created_by_users_id_fk` violation
+- ✅ **Select options for 'type' attribute**: Populated select_options table with Client, Agent, Contact, Lead, Other (fixes inability to change type)
+- ✅ **Inline group creation**: Added 'Create new group' button to record reference picker for company field; config now passed to AttributeEditor
 
 ## Running Locally
 ```bash
