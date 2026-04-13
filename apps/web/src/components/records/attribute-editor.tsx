@@ -12,6 +12,7 @@ interface AttributeEditorProps {
   options?: { id: string; title: string; color: string }[];
   statuses?: { id: string; title: string; color: string; isActive: boolean }[];
   isMultiselect?: boolean;
+  config?: Record<string, unknown>;
   onSave: (value: unknown) => void;
   onCancel: () => void;
 }
@@ -22,6 +23,7 @@ export function AttributeEditor({
   options,
   statuses,
   isMultiselect = false,
+  config = {},
   onSave,
   onCancel,
 }: AttributeEditorProps) {
@@ -64,7 +66,7 @@ export function AttributeEditor({
       const refVal = value && typeof value === "object" && "id" in (value as Record<string, unknown>)
         ? (value as { id: string }).id
         : (value as string | null);
-      return <RecordReferenceEditor value={refVal} onSave={onSave} onCancel={onCancel} />;
+      return <RecordReferenceEditor value={refVal} config={config} onSave={onSave} onCancel={onCancel} />;
     }
 
     default:
@@ -415,8 +417,9 @@ const OBJECT_COLORS: Record<string, string> = {
   deals: "bg-orange-500",
 };
 
-function RecordReferenceEditor({ value, onSave, onCancel }: {
+function RecordReferenceEditor({ value, config = {}, onSave, onCancel }: {
   value: string | null;
+  config?: Record<string, unknown>;
   onSave: (v: unknown) => void;
   onCancel: () => void;
 }) {
@@ -425,6 +428,9 @@ function RecordReferenceEditor({ value, onSave, onCancel }: {
     { recordId: string; displayName: string; objectSlug: string; objectName: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newRecordName, setNewRecordName] = useState("");
+  const targetObjectSlug = config.targetObjectSlug as string;
   const ref = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -480,6 +486,23 @@ function RecordReferenceEditor({ value, onSave, onCancel }: {
     }, 250);
   }, []);
 
+  const handleCreateNew = async () => {
+    if (!newRecordName.trim() || !targetObjectSlug) return;
+    try {
+      const res = await fetch(`/api/v1/objects/${targetObjectSlug}/records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values: { name: newRecordName.trim() } }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSave(data.data.id);
+      }
+    } catch (err) {
+      console.error("Failed to create record:", err);
+    }
+  };
+
   return (
     <div
       ref={wrapperRef}
@@ -503,6 +526,45 @@ function RecordReferenceEditor({ value, onSave, onCancel }: {
           className="h-7 text-sm"
         />
       </div>
+      {targetObjectSlug && !isCreating && (
+        <div className="border-b border-border p-1">
+          <button
+            type="button"
+            onClick={() => setIsCreating(true)}
+            className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm px-2 py-1.5"
+          >
+            + Create new {targetObjectSlug.slice(0, -1)}
+          </button>
+        </div>
+      )}
+      {isCreating && (
+        <div className="border-b border-border p-1 space-y-1">
+          <Input
+            value={newRecordName}
+            onChange={(e) => setNewRecordName(e.target.value)}
+            placeholder="Enter name"
+            className="h-7 text-sm"
+            autoFocus
+          />
+          <div className="flex justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setIsCreating(false)}
+              className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateNew}
+              className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90"
+              disabled={!newRecordName.trim()}
+            >
+              Create
+            </button>
+          </div>
+        </div>
+      )}
       <div className="max-h-48 overflow-auto p-1">
         {loading && results.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-3">Loading...</p>

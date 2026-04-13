@@ -21,6 +21,7 @@ interface AttributeDef {
   title: string;
   type: AttributeType;
   isMultiselect: boolean;
+  config?: Record<string, unknown>;
   options?: { id: string; title: string; color: string }[];
   statuses?: { id: string; title: string; color: string; isActive: boolean }[];
 }
@@ -93,6 +94,7 @@ export function RecordTable({
                 options={attr.options}
                 statuses={attr.statuses}
                 isMultiselect={attr.isMultiselect}
+                config={attr.config}
                 onSave={(newVal) => {
                   onUpdateRecord(row.original.id, attr.slug, newVal);
                   setEditingCell(null);
