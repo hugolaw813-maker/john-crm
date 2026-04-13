@@ -267,7 +267,7 @@ function FieldInput({
 // ─── Record Reference Picker ─────────────────────────────────────────
 
 const OBJECT_COLORS: Record<string, string> = {
-  companies: "bg-blue-500",
+  groups: "bg-blue-500",
   people: "bg-purple-500",
   deals: "bg-orange-500",
 };

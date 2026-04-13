@@ -44,7 +44,7 @@ const mainNav = [
 
 const objectNav = [
   { href: "/objects/people", label: "People", icon: Users },
-  { href: "/objects/companies", label: "Groups", icon: Building2 },
+  { href: "/objects/groups", label: "Groups", icon: Building2 },
   { href: "/objects/projects", label: "Projects", icon: Handshake },
 ];
 

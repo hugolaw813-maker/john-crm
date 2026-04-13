@@ -19,7 +19,7 @@ interface RelatedRecordsProps {
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   people: Users,
-  companies: Building2,
+  groups: Building2,
   deals: Handshake,
 };
 

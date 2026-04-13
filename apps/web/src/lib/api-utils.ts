@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { workspaceMembers, apiKeys } from "@/db/schema";
+import { workspaceMembers, apiKeys, workspaces } from "@/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { createHash } from "crypto";
 
@@ -22,6 +22,25 @@ function hashApiKey(key: string): string {
  * Active workspace is determined by the `active-workspace-id` cookie.
  */
 export async function getAuthContext(req: NextRequest): Promise<AuthContext | null> {
+  // 0. Development bypass
+  if (process.env.DISABLE_AUTH === "true") {
+    // Return a dummy auth context for development
+    let workspaceId = req.cookies.get("active-workspace-id")?.value;
+    if (!workspaceId) {
+      const ws = await db.select().from(workspaces).limit(1);
+      if (ws.length > 0) workspaceId = ws[0].id;
+    }
+    if (!workspaceId) {
+      // No workspace exists, can't create one here
+      return null;
+    }
+    return {
+      userId: "dev-user",
+      workspaceId,
+      workspaceRole: "admin",
+      authMethod: "cookie"
+    };
+  }
   // 1. Check for Bearer token auth
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {

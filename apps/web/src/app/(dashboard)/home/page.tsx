@@ -89,7 +89,7 @@ function relativeTime(dateStr: string): string {
 
 const OBJECT_ICONS: Record<string, React.ReactNode> = {
   people: <Users className="h-4 w-4" />,
-  companies: <Building2 className="h-4 w-4" />,
+  groups: <Building2 className="h-4 w-4" />,
   deals: <Handshake className="h-4 w-4" />,
 };
 
@@ -141,7 +141,7 @@ export default function HomePage() {
   const [stats, setStats] = useState({
     tasks: 0,
     people: 0,
-    companies: 0,
+    groups: 0,
     deals: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -168,13 +168,13 @@ export default function HomePage() {
     async function load() {
       setLoading(true);
       try {
-        const [tasksRes, notesRes, browseRes, peopleRes, companiesRes, dealsRes] =
+        const [tasksRes, notesRes, browseRes, peopleRes, groupsRes, dealsRes] =
           await Promise.all([
             fetch("/api/v1/tasks?limit=10"),
             fetch("/api/v1/notes?limit=5"),
             fetch("/api/v1/records/browse?limit=5"),
             fetch("/api/v1/objects/people/records?limit=1"),
-            fetch("/api/v1/objects/companies/records?limit=1"),
+            fetch("/api/v1/objects/groups/records?limit=1"),
             fetch("/api/v1/objects/deals/records?limit=1"),
           ]);
 
@@ -195,9 +195,9 @@ export default function HomePage() {
           const data = await peopleRes.json();
           setStats((s) => ({ ...s, people: data.data.pagination?.total ?? 0 }));
         }
-        if (companiesRes.ok) {
-          const data = await companiesRes.json();
-          setStats((s) => ({ ...s, companies: data.data.pagination?.total ?? 0 }));
+        if (groupsRes.ok) {
+          const data = await groupsRes.json();
+          setStats((s) => ({ ...s, groups: data.data.pagination?.total ?? 0 }));
         }
         if (dealsRes.ok) {
           const data = await dealsRes.json();
@@ -242,8 +242,8 @@ export default function HomePage() {
   }
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "";
-  const isNewUser = !loading && stats.people + stats.companies + stats.deals === 0;
-  const hasData = !loading && stats.people + stats.companies + stats.deals > 0;
+  const isNewUser = !loading && stats.people + stats.groups + stats.deals === 0;
+  const hasData = !loading && stats.people + stats.groups + stats.deals > 0;
 
   // Contextual nudge for greeting
   const overdueTasks = tasks.filter(
@@ -367,16 +367,16 @@ export default function HomePage() {
             </Card>
           </Link>
 
-          <Link href="/objects/companies">
+          <Link href="/objects/groups">
             <Card className="hover:shadow-md transition-shadow cursor-pointer border-violet-200/50 bg-violet-50/30 dark:border-violet-900/50 dark:bg-violet-950/20">
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="rounded-lg bg-violet-100 dark:bg-violet-900/50 p-2">
                   <Building2 className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.companies}</p>
+                  <p className="text-2xl font-bold">{stats.groups}</p>
                   <p className="text-xs text-muted-foreground">
-                    {stats.companies === 1 ? "company" : "companies"}
+                    {stats.groups === 1 ? "group" : "groups"}
                   </p>
                 </div>
               </CardContent>
@@ -417,14 +417,14 @@ export default function HomePage() {
         </button>
 
         <button
-          onClick={() => router.push("/objects/companies")}
+          onClick={() => router.push("/objects/groups")}
           className="flex items-center gap-3 rounded-lg border border-border p-3 text-left hover:bg-muted/50 transition-colors"
         >
           <div className="rounded-lg bg-violet-100 dark:bg-violet-900/50 p-2 shrink-0">
             <Building2 className="h-4 w-4 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <p className="text-sm font-medium">Add a company</p>
+            <p className="text-sm font-medium">Add a group</p>
             <p className="text-xs text-muted-foreground">Organization</p>
           </div>
         </button>

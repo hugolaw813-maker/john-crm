@@ -30,6 +30,7 @@ Thumbs.db
 
 # Docker
 postgres-data/
+pgdata/
 
 # Claude (keep agents + settings.json, exclude local secrets)
 .claude/settings.local.json

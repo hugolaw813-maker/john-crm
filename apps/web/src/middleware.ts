@@ -6,6 +6,18 @@ const workspaceSetupPaths = ["/select-workspace", "/api/v1/workspaces"];
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // TEMPORARY: Disable auth for development
+  // Skip all auth checks and workspace checks
+  if (process.env.DISABLE_AUTH === "true") {
+    // Still need to set a dummy workspace cookie for the app to work
+    const response = NextResponse.next();
+    // Set a dummy active-workspace-id cookie if not present
+    if (!req.cookies.get("active-workspace-id")) {
+      response.cookies.set("active-workspace-id", "dev-workspace");
+    }
+    return response;
+  }
+
   // Allow public paths and static assets
   if (
     publicPaths.some((p) => pathname.startsWith(p)) ||

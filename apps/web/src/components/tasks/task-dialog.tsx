@@ -641,7 +641,7 @@ export function TaskDialog({
                     <div className="border-b border-border p-2 flex flex-wrap gap-1.5">
                       {linkedRecords.map((r) => {
                         const chipColor =
-                          r.objectSlug === "companies"
+                          r.objectSlug === "groups"
                             ? "bg-blue-500"
                             : r.objectSlug === "people"
                               ? "bg-purple-500"
@@ -709,7 +709,7 @@ export function TaskDialog({
                       )
                       .map((r) => {
                         const color =
-                          r.objectSlug === "companies"
+                          r.objectSlug === "groups"
                             ? "bg-blue-500"
                             : r.objectSlug === "people"
                               ? "bg-purple-500"

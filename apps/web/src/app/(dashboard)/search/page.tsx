@@ -26,7 +26,7 @@ interface SearchResult {
 
 const OBJECT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   people: Users,
-  companies: Building2,
+  groups: Building2,
   projects: Handshake,
 };
 

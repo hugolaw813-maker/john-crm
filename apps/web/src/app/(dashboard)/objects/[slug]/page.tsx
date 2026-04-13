@@ -65,7 +65,7 @@ export default function ObjectPage() {
 
   const displayAttributes = useMemo(() => {
     if (!object) return [];
-    if (slug !== "companies") return object.attributes;
+    if (slug !== "groups") return object.attributes;
 
     const priority = ["name", "type", "team"];
     return [...object.attributes]
