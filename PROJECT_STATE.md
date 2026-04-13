@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (19:40 EDT)_
+_Last updated: April 13, 2026 (19:42 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -36,7 +36,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Select options for 'type' attribute**: Populated select_options table with Client, Agent, Contact, Lead, Other (fixes inability to change type)
 - ✅ **Updated 'type' options per user request**: Changed to Client, Prospect, Agent, COI, Professional, BNI; migrated existing values
 - ✅ **Inline group creation**: Added 'Create new group' button to record reference picker for company field; config now passed to AttributeEditor
-- ✅ **Groups cleanup**: Deleted 16 groups from 'Jahborn Riley Group' down alphabetically (7 groups remain)
+- ✅ **Groups cleanup**: Deleted 16 groups from 'Jahborn Riley Group' down alphabetically (7 groups remain); later deleted all remaining groups (0 groups total)
 - ✅ **Groups column rename**: Changed 'Name' column title to 'Group', 'Team' column title to 'Members'
 
 ## Running Locally
