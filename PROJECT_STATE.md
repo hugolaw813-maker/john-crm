@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (18:20 EDT)_
+_Last updated: April 13, 2026 (19:30 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -34,6 +34,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **UI verification**: Groups table shows people lists, People table shows clean names with Address column
 - ✅ **Foreign key constraint fix**: Updated authentication dev bypass to use real user ID, fixed `records_created_by_users_id_fk` violation
 - ✅ **Select options for 'type' attribute**: Populated select_options table with Client, Agent, Contact, Lead, Other (fixes inability to change type)
+- ✅ **Updated 'type' options per user request**: Changed to Client, Prospect, Agent, COI, Professional, BNI; migrated existing values
 - ✅ **Inline group creation**: Added 'Create new group' button to record reference picker for company field; config now passed to AttributeEditor
 
 ## Running Locally
