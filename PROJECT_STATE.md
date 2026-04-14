@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (20:10 EDT)_
+_Last updated: April 13, 2026 (20:20 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -40,6 +40,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Groups column rename**: Changed 'Name' column title to 'Group', 'Team' column title to 'Members'
 - ✅ **Group field filtering**: Updated RecordReferenceEditor to filter records by target object slug (groups only), no longer showing people and other lists
 - ✅ **New Person group creation**: Added inline group creation to RecordReferencePicker in create modal; config passed; filter by target object slug
+- ✅ **Notes card layout**: Updated NoteCard to show 2 lines: 1st line with name, note title, date; 2nd line with detailed comment
 
 ## Running Locally
 ```bash

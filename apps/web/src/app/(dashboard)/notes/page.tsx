@@ -298,45 +298,53 @@ function NoteCard({
   const objectColor =
     OBJECT_COLORS[note.objectSlug || ""] || "bg-muted-foreground";
   const preview = getContentPreview(note.content);
+  const noteTitle = note.title || "Untitled";
+  const recordName = note.recordDisplayName || "Unknown";
+  const date = getRelativeDate(note.updatedAt || note.createdAt);
 
   return (
     <div
       onClick={onClick}
       className="group rounded-lg border border-border/60 bg-card/30 px-4 py-3 hover:bg-muted/20 cursor-pointer transition-colors"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          {/* Record badge */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <div
-              className={cn(
-                "h-3.5 w-3.5 rounded flex items-center justify-center shrink-0",
-                objectColor
-              )}
-            >
-              <Building2 className="h-2 w-2 text-white" />
-            </div>
-            <span className="text-xs font-medium text-muted-foreground truncate">
-              {note.recordDisplayName || "Unknown"}
-            </span>
+      {/* First line: Name • Note • Date */}
+      <div className="flex items-center gap-2 mb-1.5 truncate">
+        {/* Record icon and name */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div
+            className={cn(
+              "h-3.5 w-3.5 rounded flex items-center justify-center shrink-0",
+              objectColor
+            )}
+          >
+            <Building2 className="h-2 w-2 text-white" />
           </div>
-
-          {/* Title */}
-          <h3 className="text-sm font-medium truncate">
-            {note.title || "Untitled"}
-          </h3>
-
-          {/* Preview */}
-          <p className="text-xs text-muted-foreground/60 mt-0.5 truncate">
-            {preview}
-          </p>
+          <span className="text-xs font-medium text-muted-foreground truncate">
+            {recordName}
+          </span>
         </div>
 
+        {/* Separator */}
+        <span className="text-xs text-muted-foreground/40 shrink-0">•</span>
+
+        {/* Note title */}
+        <span className="text-xs font-medium truncate">
+          {noteTitle}
+        </span>
+
+        {/* Separator */}
+        <span className="text-xs text-muted-foreground/40 shrink-0">•</span>
+
         {/* Date */}
-        <span className="text-xs text-muted-foreground shrink-0 mt-5">
-          {getRelativeDate(note.createdAt)}
+        <span className="text-xs text-muted-foreground/60 truncate ml-auto">
+          {date}
         </span>
       </div>
+
+      {/* Second line: Detailed comment */}
+      <p className="text-xs text-muted-foreground/60 truncate">
+        {preview}
+      </p>
     </div>
   );
 }
