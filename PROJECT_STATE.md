@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (20:20 EDT)_
+_Last updated: April 13, 2026 (20:25 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -41,6 +41,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Group field filtering**: Updated RecordReferenceEditor to filter records by target object slug (groups only), no longer showing people and other lists
 - ✅ **New Person group creation**: Added inline group creation to RecordReferencePicker in create modal; config passed; filter by target object slug
 - ✅ **Notes card layout**: Updated NoteCard to show 2 lines: 1st line with name, note title, date; 2nd line with detailed comment
+- ✅ **Notes sorting toggle**: Added interactive sort pill to toggle between Creation date and Last updated; groups update dynamically
 
 ## Running Locally
 ```bash

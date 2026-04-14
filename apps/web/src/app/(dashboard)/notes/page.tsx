@@ -91,6 +91,7 @@ export default function NotesPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt'>('createdAt');
 
   // Choose record dialog
   const [chooseRecordOpen, setChooseRecordOpen] = useState(false);
@@ -158,15 +159,29 @@ export default function NotesPage() {
     });
   }
 
-  // Group notes by date
+  // Sort notes based on current sort preference
+  const sortedNotes = [...notes].sort((a, b) => {
+    const aVal = new Date(sortBy === 'createdAt' ? a.createdAt : a.updatedAt);
+    const bVal = new Date(sortBy === 'createdAt' ? b.createdAt : b.updatedAt);
+    return bVal.getTime() - aVal.getTime(); // descending
+  });
+
+  // Group notes by date (using the same field as sorting for consistency)
   const groups = new Map<DateGroup, Note[]>();
-  for (const note of notes) {
-    const key = getDateGroup(note.createdAt);
+  for (const note of sortedNotes) {
+    const key = getDateGroup(sortBy === 'createdAt' ? note.createdAt : note.updatedAt);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(note);
   }
 
   const visibleGroups = GROUP_ORDER.filter((key) => groups.has(key));
+
+  const groupLabels = {
+    today: sortBy === 'createdAt' ? 'Created today' : 'Updated today',
+    yesterday: sortBy === 'createdAt' ? 'Yesterday' : 'Updated yesterday',
+    this_week: sortBy === 'createdAt' ? 'This week' : 'Updated this week',
+    older: sortBy === 'createdAt' ? 'Older' : 'Older',
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -178,10 +193,14 @@ export default function NotesPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* Sort pill */}
-          <div className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => setSortBy(sortBy === 'createdAt' ? 'updatedAt' : 'createdAt')}
+            className="flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground hover:bg-muted/20 transition-colors"
+          >
             <ArrowUpDown className="h-3 w-3" />
-            <span>Creation date</span>
-          </div>
+            <span>{sortBy === 'createdAt' ? 'Creation date' : 'Last updated'}</span>
+          </button>
 
           <Button size="sm" onClick={handleNewNote}>
             <Plus className="mr-1 h-4 w-4" />
@@ -238,7 +257,7 @@ export default function NotesPage() {
                 ) : (
                   <ChevronDown className="h-3 w-3" />
                 )}
-                {GROUP_LABELS[groupKey]}
+                {groupLabels[groupKey]}
                 <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px]">
                   {groupNotes.length}
                 </span>
