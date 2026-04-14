@@ -25,6 +25,7 @@ interface AttributeDef {
   isMultiselect: boolean;
   options?: { id: string; title: string; color: string }[];
   statuses?: { id: string; title: string; color: string; isActive: boolean }[];
+  config?: Record<string, unknown>;
 }
 
 interface RecordCreateModalProps {
@@ -250,6 +251,7 @@ function FieldInput({
         <RecordReferencePicker
           value={value as string | null}
           onChange={onChange}
+          config={attr.config}
         />
       ) : type === "actor_reference" ? (
         // Actor references are auto-set (current user), skip input
@@ -275,10 +277,13 @@ const OBJECT_COLORS: Record<string, string> = {
 function RecordReferencePicker({
   value,
   onChange,
+  config = {},
 }: {
   value: string | null;
   onChange: (val: unknown) => void;
+  config?: Record<string, unknown>;
 }) {
+  const targetObjectSlug = config.targetObjectSlug as string;
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<
     { recordId: string; displayName: string; objectSlug: string; objectName: string }[]
@@ -286,6 +291,8 @@ function RecordReferencePicker({
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedDisplay, setSelectedDisplay] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newRecordName, setNewRecordName] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -296,7 +303,10 @@ function RecordReferencePicker({
       return;
     }
     // Try to look up the record name
-    fetch(`/api/v1/records/browse?limit=50`)
+    const url = targetObjectSlug
+      ? `/api/v1/records/browse?limit=50&objectSlug=${targetObjectSlug}`
+      : `/api/v1/records/browse?limit=50`;
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         const match = (data.data || []).find(
@@ -305,7 +315,7 @@ function RecordReferencePicker({
         if (match) setSelectedDisplay(match.displayName);
       })
       .catch(() => {});
-  }, [value]);
+  }, [value, targetObjectSlug]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -323,7 +333,10 @@ function RecordReferencePicker({
     if (!q.trim()) {
       // Load browse results
       setLoading(true);
-      fetch("/api/v1/records/browse?limit=20")
+      const url = targetObjectSlug
+        ? `/api/v1/records/browse?limit=20&objectSlug=${targetObjectSlug}`
+        : "/api/v1/records/browse?limit=20";
+      fetch(url)
         .then((r) => r.json())
         .then((data) => setResults(data.data || []))
         .catch(() => {})
@@ -333,7 +346,10 @@ function RecordReferencePicker({
     setLoading(true);
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}&limit=15`);
+        const url = targetObjectSlug
+          ? `/api/v1/search?q=${encodeURIComponent(q)}&limit=15&objectSlug=${targetObjectSlug}`
+          : `/api/v1/search?q=${encodeURIComponent(q)}&limit=15`;
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           setResults(
@@ -353,7 +369,27 @@ function RecordReferencePicker({
         setLoading(false);
       }
     }, 250);
-  }, []);
+  }, [targetObjectSlug]);
+
+  const handleCreateNew = async () => {
+    if (!newRecordName.trim() || !targetObjectSlug) return;
+    try {
+      const res = await fetch(`/api/v1/objects/${targetObjectSlug}/records`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values: { name: newRecordName.trim() } }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onChange(data.data.id);
+        setShowDropdown(false);
+        setIsCreating(false);
+        setNewRecordName("");
+      }
+    } catch (err) {
+      console.error("Failed to create record:", err);
+    }
+  };
 
   function handleFocus() {
     setShowDropdown(true);
@@ -398,6 +434,45 @@ function RecordReferencePicker({
       />
       {showDropdown && (
         <div className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border bg-popover shadow-lg">
+          {targetObjectSlug && !isCreating && (
+            <div className="border-b border-border p-1">
+              <button
+                type="button"
+                onClick={() => setIsCreating(true)}
+                className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-sm px-2 py-1.5"
+              >
+                + Create new {targetObjectSlug.slice(0, -1)}
+              </button>
+            </div>
+          )}
+          {isCreating && (
+            <div className="border-b border-border p-1 space-y-1">
+              <Input
+                value={newRecordName}
+                onChange={(e) => setNewRecordName(e.target.value)}
+                placeholder="Enter name"
+                className="h-7 text-sm"
+                autoFocus
+              />
+              <div className="flex justify-end gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsCreating(false)}
+                  className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateNew}
+                  className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:opacity-90"
+                  disabled={!newRecordName.trim()}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          )}
           {loading && results.length === 0 && (
             <p className="text-xs text-muted-foreground text-center py-3">Loading...</p>
           )}
