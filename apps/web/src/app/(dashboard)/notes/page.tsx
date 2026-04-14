@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Plus,
   StickyNote,
@@ -13,6 +14,7 @@ import {
   Phone,
   NotebookPen,
   CheckSquare,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChooseRecordDialog } from "@/components/records/choose-record-dialog";
@@ -26,6 +28,8 @@ interface Note {
   recordId: string;
   title: string;
   content: unknown;
+  noteType: string;
+  noteDate: string;
   createdAt: string;
   updatedAt: string;
   recordDisplayName?: string;
@@ -86,6 +90,22 @@ function getRelativeDate(dateStr: string): string {
   if (isToday(d)) return "Today";
   if (isYesterday(d)) return "Yesterday";
   return format(d, "MMM d");
+}
+
+const NOTE_TYPE_COLORS: Record<string, string> = {
+  call: "bg-blue-100 text-blue-800",
+  meeting: "bg-green-100 text-green-800",
+  zoom: "bg-purple-100 text-purple-800",
+  note: "bg-gray-100 text-gray-800",
+  task: "bg-orange-100 text-orange-800",
+};
+
+function getNoteTypeLabel(type: string): string {
+  if (type === "call") return "Call";
+  if (type === "meeting") return "Meeting";
+  if (type === "zoom") return "Zoom";
+  if (type === "task") return "Task";
+  return "Note";
 }
 
 // ─── Main Component ─────────────────────────────────────────────────
@@ -164,6 +184,12 @@ export default function NotesPage() {
     setEditorRecordName(note.recordDisplayName);
     setEditorObjectSlug(note.objectSlug);
     setEditorOpen(true);
+  }
+
+  function handleNoteDateChange(noteId: string, newDate: string) {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId ? { ...note, noteDate: newDate } : note
+    ));
   }
 
   function toggleGroup(key: DateGroup) {
@@ -299,6 +325,7 @@ export default function NotesPage() {
                       key={note.id}
                       note={note}
                       onClick={() => handleNoteClick(note)}
+                      onDateChange={handleNoteDateChange}
                     />
                   ))}
                 </div>
@@ -339,23 +366,96 @@ export default function NotesPage() {
 function NoteCard({
   note,
   onClick,
+  onDateChange,
 }: {
   note: Note;
   onClick: () => void;
+  onDateChange?: (noteId: string, newDate: string) => void;
 }) {
   const objectColor =
     OBJECT_COLORS[note.objectSlug || ""] || "bg-muted-foreground";
   const preview = getContentPreview(note.content);
   const noteTitle = note.title || "Untitled";
   const recordName = note.recordDisplayName || "Unknown";
-  const date = getRelativeDate(note.updatedAt || note.createdAt);
+  const displayDate = getRelativeDate(note.noteDate || note.updatedAt || note.createdAt);
+  const noteTypeLabel = getNoteTypeLabel(note.noteType || "note");
+  const noteTypeColor = NOTE_TYPE_COLORS[note.noteType || "note"] || "bg-gray-100 text-gray-800";
+
+  const [isEditingDate, setIsEditingDate] = useState(false);
+  const [tempDate, setTempDate] = useState("");
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize temp date
+  useEffect(() => {
+    if (note.noteDate) {
+      const d = new Date(note.noteDate);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      setTempDate(`${yyyy}-${mm}-${dd}`);
+    }
+  }, [note.noteDate]);
+
+  async function updateNoteField(field: "noteDate" | "noteType", value: string) {
+    try {
+      const res = await fetch(`/api/v1/notes/${note.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error("Failed to update note");
+      // Notify parent of date change
+      if (field === "noteDate" && onDateChange) {
+        onDateChange(note.id, value);
+      }
+    } catch (err) {
+      console.error("Error updating note:", err);
+    }
+  }
+
+  function handleDateClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setIsEditingDate(true);
+    setTimeout(() => dateInputRef.current?.focus(), 10);
+  }
+
+  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setTempDate(e.target.value);
+  }
+
+  function handleDateSave() {
+    if (tempDate) {
+      updateNoteField("noteDate", tempDate);
+    }
+    setIsEditingDate(false);
+  }
+
+  function handleDateCancel() {
+    setIsEditingDate(false);
+    // Reset temp date to original
+    if (note.noteDate) {
+      const d = new Date(note.noteDate);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      setTempDate(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      handleDateSave();
+    } else if (e.key === "Escape") {
+      handleDateCancel();
+    }
+  }
 
   return (
     <div
       onClick={onClick}
       className="group rounded-lg border border-border/60 bg-card/30 px-4 py-3 hover:bg-muted/20 cursor-pointer transition-colors"
     >
-      {/* First line: Name • Note • Date */}
+      {/* First line: Name • Note • Type • Date */}
       <div className="flex items-center gap-2 mb-1.5 truncate">
         {/* Record icon and name */}
         <div className="flex items-center gap-1.5 shrink-0">
@@ -383,10 +483,59 @@ function NoteCard({
         {/* Separator */}
         <span className="text-xs text-muted-foreground/40 shrink-0">•</span>
 
-        {/* Date */}
-        <span className="text-xs text-muted-foreground/60 truncate ml-auto">
-          {date}
-        </span>
+        {/* Note type badge */}
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[10px] px-1.5 py-0 h-4 rounded-sm border-0",
+            noteTypeColor
+          )}
+        >
+          {noteTypeLabel}
+        </Badge>
+
+        {/* Date - editable */}
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          {isEditingDate ? (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                ref={dateInputRef}
+                type="date"
+                value={tempDate}
+                onChange={handleDateChange}
+                onKeyDown={handleKeyDown}
+                onBlur={handleDateSave}
+                className="text-xs bg-transparent border border-border rounded px-1 py-0.5 w-24"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-4 w-4"
+                onClick={handleDateSave}
+              >
+                <CheckSquare className="h-3 w-3" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-4 w-4"
+                onClick={handleDateCancel}
+              >
+                <span className="text-xs">✕</span>
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDateClick}
+              className="text-xs text-muted-foreground/60 hover:text-foreground flex items-center gap-0.5 transition-colors"
+              title="Click to change date"
+            >
+              <Calendar className="h-3 w-3" />
+              {displayDate}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Second line: Detailed comment */}

@@ -43,6 +43,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Notes card layout**: Updated NoteCard to show 2 lines: 1st line with name, note title, date; 2nd line with detailed comment
 - ✅ **Notes sorting toggle**: Added interactive sort pill to toggle between Creation date and Last updated; groups update dynamically
 - ✅ **Notes action tabs**: Added Log call, Log meeting, Add note, Add task choice tabs on top of Notes section (matching Person card UI)
+- ✅ **Note card type badge & editable date**: Added note type badge (call, meeting, zoom, note, task) and click‑to‑edit date on each note card; date changes via PATCH API
 
 ## Running Locally
 ```bash
