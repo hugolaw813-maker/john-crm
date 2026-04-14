@@ -10,6 +10,9 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Phone,
+  NotebookPen,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChooseRecordDialog } from "@/components/records/choose-record-dialog";
@@ -92,6 +95,7 @@ export default function NotesPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt'>('createdAt');
+  const [selectedNoteType, setSelectedNoteType] = useState<"call" | "meeting" | "note">("note");
 
   // Choose record dialog
   const [chooseRecordOpen, setChooseRecordOpen] = useState(false);
@@ -102,6 +106,7 @@ export default function NotesPage() {
   const [editorRecordId, setEditorRecordId] = useState<string | undefined>();
   const [editorRecordName, setEditorRecordName] = useState<string | undefined>();
   const [editorObjectSlug, setEditorObjectSlug] = useState<string | undefined>();
+  const [editorNoteType, setEditorNoteType] = useState<"call" | "meeting" | "note">("note");
 
   // Collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<DateGroup>>(
@@ -127,7 +132,17 @@ export default function NotesPage() {
   }, [fetchNotes]);
 
   function handleNewNote() {
+    startAction("note");
+  }
+
+  function startAction(noteType: "call" | "meeting" | "note") {
+    setSelectedNoteType(noteType);
     setChooseRecordOpen(true);
+  }
+
+  function handleAddTask() {
+    // TODO: implement task creation
+    console.log("Add task clicked");
   }
 
   function handleRecordSelected(record: {
@@ -139,6 +154,7 @@ export default function NotesPage() {
     setEditorRecordId(record.recordId);
     setEditorRecordName(record.displayName);
     setEditorObjectSlug(record.objectSlug);
+    setEditorNoteType(selectedNoteType);
     setEditorOpen(true);
   }
 
@@ -202,9 +218,21 @@ export default function NotesPage() {
             <span>{sortBy === 'createdAt' ? 'Creation date' : 'Last updated'}</span>
           </button>
 
-          <Button size="sm" onClick={handleNewNote}>
-            <Plus className="mr-1 h-4 w-4" />
-            New note
+          <Button variant="ghost" size="sm" onClick={() => startAction("call")} className="text-xs">
+            <Phone className="mr-1 h-3.5 w-3.5" />
+            Log call
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => startAction("meeting")} className="text-xs">
+            <NotebookPen className="mr-1 h-3.5 w-3.5" />
+            Log meeting
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => startAction("note")} className="text-xs">
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Add note
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleAddTask} className="text-xs">
+            <CheckSquare className="mr-1 h-3.5 w-3.5" />
+            Add task
           </Button>
         </div>
       </div>
@@ -298,6 +326,7 @@ export default function NotesPage() {
         recordId={editorRecordId}
         recordDisplayName={editorRecordName}
         objectSlug={editorObjectSlug}
+        noteType={editorNoteType}
         onNoteCreated={fetchNotes}
         onNoteDeleted={fetchNotes}
       />

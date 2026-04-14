@@ -24,6 +24,7 @@ interface NoteEditorPanelProps {
   recordDisplayName?: string;
   objectSlug?: string;
   noteId?: string;
+  noteType?: "call" | "meeting" | "note";
   onNoteCreated?: () => void;
   onNoteDeleted?: () => void;
 }
@@ -41,6 +42,7 @@ export function NoteEditorPanel({
   recordDisplayName,
   objectSlug,
   noteId,
+  noteType,
   onNoteCreated,
   onNoteDeleted,
 }: NoteEditorPanelProps) {
@@ -94,7 +96,7 @@ export function NoteEditorPanel({
       fetch(`/api/v1/objects/${objectSlug}/records/${recordId}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "", content: null }),
+        body: JSON.stringify({ title: "", content: null, noteType: noteType || "note" }),
       })
         .then((r) => r.json())
         .then((data) => {
