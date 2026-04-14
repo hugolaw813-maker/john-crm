@@ -257,6 +257,41 @@ If a meeting produces an action item, Sarah should also create a **Task**.
 
 ---
 
+## F. Using Notes for Transcripts and Detailed Records
+
+The **Notes** feature is designed for storing detailed transcripts, meeting minutes, call logs, and any extended text that should be attached to a Person or Company.
+
+### When to use Notes vs Conversations
+- Use **Conversations** for brief meeting summaries, follow‑up dates, and quick call notes.
+- Use **Notes** for full meeting transcripts, detailed minutes, long email threads, or any content that needs rich formatting.
+
+### How to create a Note
+1. Go to the **Notes** page (left sidebar).
+2. Click the appropriate action tab:
+   - **Log call** – for phone call transcripts
+   - **Log meeting** – for in‑person/video meeting transcripts
+   - **Add note** – for general notes, email threads, etc.
+   - **Add task** – creates a task (not a note)
+3. Select the **Person** (or Company) the note belongs to.
+4. The note editor will open.
+
+### Adding transcript content
+- In the note editor, paste or type the full transcript.
+- Use the formatting toolbar for headings, lists, bold/italic, etc.
+- Give the note a clear title (e.g., “Call with Michael Razzano – April 13”).
+- The note will automatically be tagged with the correct type (call/meeting/note) based on the button you clicked.
+
+### Changing note type or date
+- On the Notes page, each note card shows a **colored badge** (Call, Meeting, Zoom, Note, Task).
+- To change the date, **click the date** on the note card (e.g., “Today”). A date picker appears; choose a new date and click the checkmark (or press Enter).
+- The change is saved immediately.
+
+### Viewing a full transcript
+- Click any note card to open the editor and see the complete content.
+- The note card preview shows the first ~100 characters of the transcript.
+
+---
+
 # 7. How Sarah Should Manage John’s Tasks
 
 ## A. What belongs in Tasks
@@ -524,6 +559,13 @@ That includes:
 - follow-up dates
 - discussion history
 
+## Use **Notes** for:
+- full meeting/call transcripts
+- detailed minutes
+- long email threads
+- rich‑formatted content
+- attaching documents (if supported)
+
 ---
 
 # 15. Suggested Training Flow for Sarah
@@ -536,6 +578,7 @@ That includes:
 ## Day 2
 - practice updating client records
 - practice entering meeting notes
+- practice adding transcript notes using Notes
 - practice linking tasks to the right person
 
 ## Day 3
