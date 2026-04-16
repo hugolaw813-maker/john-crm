@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 16, 2026 (11:55 EDT)_
+_Last updated: April 16, 2026 (13:10 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -10,7 +10,7 @@ Fix relationship / data integrity and finish migration cleanup
 2. [x] **Add inline group creation to record picker** — Implemented 'Create new group' button in RecordReferenceEditor; config passed
 3. [ ] **Verify relationship integrity** — Run verification scripts in `scripts/migrations/` to confirm person/company/task links are consistent
 4. [ ] **Resolve any broken links** — Fix records that fail verification (use or create targeted migration scripts in `scripts/migrations/`)
-5. [ ] **Test Railway deployment** — Verify `Dockerfile.railway` and `railway.json` work for staging/production push
+5. [x] **Railway deployment canceled** — Decision made April 16, not proceeding
 6. [ ] **UI/UX polish** — Fix any edge cases in record cards, multiselect categories, and group member derivation
 7. [ ] **Test UI fixes** — Verify type selection works and group creation button appears in person edit
 
