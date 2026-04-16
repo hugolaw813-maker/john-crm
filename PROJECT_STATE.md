@@ -1,6 +1,6 @@
 # OpenClaw CRM — Project State
 
-_Last updated: April 13, 2026 (20:25 EDT)_
+_Last updated: April 16, 2026 (11:55 EDT)_
 
 ## Current Milestone
 Fix relationship / data integrity and finish migration cleanup
@@ -44,6 +44,7 @@ Fix relationship / data integrity and finish migration cleanup
 - ✅ **Notes sorting toggle**: Added interactive sort pill to toggle between Creation date and Last updated; groups update dynamically
 - ✅ **Notes action tabs**: Added Log call, Log meeting, Add note, Add task choice tabs on top of Notes section (matching Person card UI)
 - ✅ **Note card type badge & editable date**: Added note type badge (call, meeting, zoom, note, task) and click‑to‑edit date on each note card; date changes via PATCH API
+- ✅ **Infrastructure fixes (April 16)**: Fixed OpenClaw gateway boot reliability (network.target, TimeoutStartSec), started CRM services (PostgreSQL + Next.js), verified accessibility
 
 ## Running Locally
 ```bash
