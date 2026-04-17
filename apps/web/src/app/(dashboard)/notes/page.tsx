@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Plus,
   StickyNote,
@@ -15,6 +16,8 @@ import {
   NotebookPen,
   CheckSquare,
   Calendar,
+  Search,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChooseRecordDialog } from "@/components/records/choose-record-dialog";
@@ -85,6 +88,27 @@ function getContentPreview(content: unknown): string {
   return "This note has no content.";
 }
 
+function getContentText(content: unknown): string {
+  if (!content) return "";
+  try {
+    const doc = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
+    if (!doc.content) return "";
+    const texts: string[] = [];
+    for (const block of doc.content) {
+      if (block.content) {
+        for (const inline of block.content) {
+          if (inline.text && inline.text.trim()) {
+            texts.push(inline.text.trim());
+          }
+        }
+      }
+    }
+    return texts.join(" ");
+  } catch {
+    return "";
+  }
+}
+
 function getRelativeDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (isToday(d)) return "Today";
@@ -116,6 +140,7 @@ export default function NotesPage() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt'>('createdAt');
   const [selectedNoteType, setSelectedNoteType] = useState<"call" | "meeting" | "note">("note");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Choose record dialog
   const [chooseRecordOpen, setChooseRecordOpen] = useState(false);
@@ -201,8 +226,26 @@ export default function NotesPage() {
     });
   }
 
+  // Filter notes based on search query
+  const filteredNotes = searchQuery.trim() === "" 
+    ? notes 
+    : notes.filter(note => {
+        const query = searchQuery.toLowerCase();
+        const title = (note.title || "").toLowerCase();
+        const recordName = (note.recordDisplayName || "").toLowerCase();
+        const noteType = (note.noteType || "").toLowerCase();
+        const contentText = getContentText(note.content).toLowerCase();
+        
+        return title.includes(query) ||
+               recordName.includes(query) || 
+               noteType.includes(query) ||
+               contentText.includes(query);
+      });
+  
+  const filteredCount = filteredNotes.length;
+
   // Sort notes based on current sort preference
-  const sortedNotes = [...notes].sort((a, b) => {
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
     const aVal = new Date(sortBy === 'createdAt' ? a.createdAt : a.updatedAt);
     const bVal = new Date(sortBy === 'createdAt' ? b.createdAt : b.updatedAt);
     return bVal.getTime() - aVal.getTime(); // descending
@@ -231,9 +274,32 @@ export default function NotesPage() {
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">Notes</h1>
-          <span className="text-sm text-muted-foreground">{total}</span>
+          <span className="text-sm text-muted-foreground">
+            {searchQuery ? `${filteredCount} of ${total}` : total}
+          </span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Search input */}
+          <div className="relative mr-2">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search names or words..."
+              className="pl-9 pr-8 h-8 w-48 text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
           {/* Sort pill */}
           <button
             type="button"
@@ -290,6 +356,17 @@ export default function NotesPage() {
             <p className="text-muted-foreground">No notes yet.</p>
             <p className="text-sm text-muted-foreground/60 mt-1">
               Click &quot;+ New note&quot; to create your first note.
+            </p>
+          </div>
+        )}
+
+        {/* No search results */}
+        {!loading && notes.length > 0 && filteredCount === 0 && searchQuery && (
+          <div className="text-center py-12">
+            <Search className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground">No notes match your search.</p>
+            <p className="text-sm text-muted-foreground/60 mt-1">
+              Try a different name or keyword.
             </p>
           </div>
         )}
