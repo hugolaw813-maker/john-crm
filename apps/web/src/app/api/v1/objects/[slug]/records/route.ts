@@ -49,6 +49,9 @@ export async function POST(
 
     console.log('[DEBUG API POST] creating record with values:', JSON.stringify(values));
     const record = await createRecord(obj.id, values, ctx.userId);
+    if (!record) {
+      throw new Error("Record creation returned null");
+    }
     console.log('[DEBUG API POST] record created:', record.id);
     return success(record, 201);
   } catch (error: any) {
