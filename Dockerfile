@@ -64,8 +64,8 @@ COPY --from=builder /app/apps/web/drizzle.config.ts ./apps/web/
 COPY --from=builder /app/apps/web/src/db ./apps/web/src/db
 COPY --from=builder /app/packages/shared ./packages/shared
 
-# Copy marketing content for runtime access (sitemap, dynamic pages)
-COPY --from=builder /app/marketing/content ./marketing/content
+# Copy app content for runtime access (sitemap, dynamic pages)
+COPY --from=builder /app/apps/web/content ./apps/web/content
 
 USER nextjs
 
