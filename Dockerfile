@@ -76,4 +76,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-lc", "cd /app/apps/web && ../../node_modules/.bin/drizzle-kit push --config=drizzle.config.ts && node /app/apps/web/server.js"]
+CMD ["sh", "-lc", "cd /app/apps/web && ../node_modules/.bin/drizzle-kit push --config=drizzle.config.ts && node /app/apps/web/server.js"]
