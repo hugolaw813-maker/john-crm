@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { success, badRequest } from "@/lib/api-utils";
+import { success, badRequest, getAuthContext } from "@/lib/api-utils";
 import { createWorkspace, listUserWorkspaces } from "@/services/workspace";
 
 /** GET /api/v1/workspaces — List workspaces the current user belongs to */
 export async function GET(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: req.headers });
-  if (!session?.user?.id) {
+  const authContext = await getAuthContext(req);
+  if (!authContext) {
     return NextResponse.json(
       { error: { code: "UNAUTHORIZED", message: "Authentication required" } },
       { status: 401 }
     );
   }
 
-  const workspaces = await listUserWorkspaces(session.user.id);
+  const workspaces = await listUserWorkspaces(authContext.userId);
   return success(workspaces);
 }
 
