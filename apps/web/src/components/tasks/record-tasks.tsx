@@ -14,6 +14,7 @@ interface Task {
   isCompleted: boolean;
   completedAt: string | null;
   createdAt: string;
+  priority?: string | null;
   linkedRecords: { id: string; displayName: string; objectSlug: string }[];
   assignees: { id: string; name: string; email: string }[];
 }
@@ -258,7 +259,11 @@ export function RecordTasks({
                 assigneeIds: editingTask.assignees.map((a) => a.id),
                 recordIds: editingTask.linkedRecords.map((r) => r.id),
                 linkedRecords: editingTask.linkedRecords,
-                assignees: editingTask.assignees,
+                assignees: editingTask.assignees.map((a) => ({
+                  id: a.id,
+                  displayName: a.name,
+                  objectSlug: "people",
+                })),
               }
             : undefined
         }
