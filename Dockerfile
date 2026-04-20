@@ -62,6 +62,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/
 # Copy drizzle config and schema for db:push at startup
 COPY --from=builder /app/apps/web/drizzle.config.ts ./apps/web/
 COPY --from=builder /app/apps/web/src/db ./apps/web/src/db
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared ./packages/shared
 
 # Copy app content for runtime access (sitemap, dynamic pages)
@@ -74,4 +76,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "apps/web/server.js"]
+CMD ["sh", "-lc", "cd /app/apps/web && ../../node_modules/.bin/drizzle-kit push --config=drizzle.config.ts && node /app/apps/web/server.js"]
