@@ -254,6 +254,7 @@ export function RecordTasks({
                 deadline: editingTask.deadline
                   ? new Date(editingTask.deadline)
                   : null,
+                priority: editingTask.priority ?? "medium",
                 assigneeIds: editingTask.assignees.map((a) => a.id),
                 recordIds: editingTask.linkedRecords.map((r) => r.id),
                 linkedRecords: editingTask.linkedRecords,
