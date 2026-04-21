@@ -62,15 +62,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/
 # Copy drizzle config and schema for db:push at startup
 COPY --from=builder /app/apps/web/drizzle.config.ts ./apps/web/
 COPY --from=builder /app/apps/web/src/db ./apps/web/src/db
-COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
-COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
-COPY --from=builder /app/node_modules/.modules.yaml ./node_modules/.modules.yaml
-COPY --from=builder /app/node_modules/.pnpm-workspace-state-v1.json ./node_modules/.pnpm-workspace-state-v1.json
-COPY --from=builder /app/node_modules/drizzle-kit ./node_modules/drizzle-kit
-COPY --from=builder /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=builder /app/node_modules/postgres ./node_modules/postgres
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
-COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder /app/packages/shared ./packages/shared
 
 # Copy app content for runtime access (sitemap, dynamic pages)
@@ -83,4 +74,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-lc", "cd /app/apps/web && /app/node_modules/.bin/drizzle-kit push --config=drizzle.config.ts && node /app/apps/web/server.js"]
+CMD ["node", "apps/web/server.js"]
