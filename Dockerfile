@@ -59,10 +59,15 @@ COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-# Copy drizzle config and schema for db:push at startup
+# Copy workspace files needed for runtime db push and auth schema init
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=builder /app/apps/web/package.json ./apps/web/package.json
 COPY --from=builder /app/apps/web/drizzle.config.ts ./apps/web/
 COPY --from=builder /app/apps/web/src/db ./apps/web/src/db
 COPY --from=builder /app/packages/shared ./packages/shared
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 
 # Copy app content for runtime access (sitemap, dynamic pages)
 COPY --from=builder /app/apps/web/content ./apps/web/content
