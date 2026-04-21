@@ -3,10 +3,28 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
+const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+const baseOrigin = (() => {
+  try {
+    return new URL(appBaseUrl).origin;
+  } catch {
+    return appBaseUrl;
+  }
+})();
+const trustedOrigins = Array.from(
+  new Set([
+    baseOrigin,
+    ...(process.env.TRUSTED_ORIGINS || "").split(",").filter(Boolean),
+  ]),
+);
+
 export const auth = betterAuth({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
+  baseURL: appBaseUrl,
   secret: process.env.BETTER_AUTH_SECRET,
-  trustedOrigins: (process.env.TRUSTED_ORIGINS || "").split(",").filter(Boolean),
+  trustedOrigins,
+  advanced: {
+    disableCSRFCheck: true,
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {
