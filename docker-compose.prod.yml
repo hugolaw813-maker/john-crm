@@ -28,7 +28,7 @@ services:
         GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-openclaw}
-    command: ["sh", "-lc", "cd /app && corepack enable >/dev/null 2>&1 && pnpm --filter @openclaw-crm/web db:push"]
+    command: ["sh", "-lc", "cd /app && node /usr/local/lib/node_modules/corepack/dist/lib/corepack.cjs pnpm --filter @openclaw-crm/web db:push"]
     depends_on:
       db:
         condition: service_healthy
