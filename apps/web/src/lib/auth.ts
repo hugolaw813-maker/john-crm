@@ -24,6 +24,9 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: false,
     autoSignInAfterVerification: false,
+    sendVerificationEmail: async () => {
+      return;
+    },
   },
   socialProviders: {
     github: {
