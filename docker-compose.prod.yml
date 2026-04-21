@@ -28,6 +28,7 @@ services:
         GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-openclaw}
+      DATABASE_SSL: disable
     command: ["sh", "-lc", "cd /app/apps/web && ./node_modules/.bin/drizzle-kit push --config=drizzle.config.ts"]
     depends_on:
       db:
@@ -51,6 +52,7 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-openclaw}
+      DATABASE_SSL: disable
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
