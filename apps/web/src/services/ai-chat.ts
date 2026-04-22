@@ -16,13 +16,17 @@ import { listLists, listListEntries } from "./lists";
 // ─── Types ───────────────────────────────────────────────────────────
 
 interface AIConfig {
+  provider: "openrouter" | "openai";
   apiKey: string;
   model: string;
 }
 
 interface WorkspaceSettings {
+  aiProvider?: "openrouter" | "openai";
   openrouterApiKey?: string;
   openrouterModel?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
 }
 
 export interface ToolHandler {
@@ -62,12 +66,24 @@ export async function getAIConfig(workspaceId: string): Promise<AIConfig | null>
     .limit(1);
 
   const settings = (workspace?.settings ?? {}) as WorkspaceSettings;
+  const provider = settings.aiProvider || "openrouter";
 
-  // Workspace setting > env var
+  if (provider === "openai") {
+    const apiKey = settings.openaiApiKey || process.env.OPENAI_API_KEY;
+    if (!apiKey) return null;
+
+    return {
+      provider,
+      apiKey,
+      model: settings.openaiModel || process.env.OPENAI_MODEL || "gpt-4o",
+    };
+  }
+
   const apiKey = settings.openrouterApiKey || process.env.OPENROUTER_API_KEY;
   if (!apiKey) return null;
 
   return {
+    provider: "openrouter",
     apiKey,
     model: settings.openrouterModel || process.env.OPENROUTER_MODEL || "anthropic/claude-sonnet-4",
   };
@@ -518,26 +534,37 @@ export async function saveMessage(
   return msg;
 }
 
-export async function generateTitle(apiKey: string, model: string, userMessage: string): Promise<string> {
+export async function generateTitle(config: AIConfig, userMessage: string): Promise<string> {
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.BETTER_AUTH_URL || "http://localhost:3001",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "user",
-            content: `Generate a very short title (max 6 words) for a CRM conversation that starts with this message. Return only the title, no quotes or punctuation:\n\n${userMessage}`,
-          },
-        ],
-        max_tokens: 20,
-      }),
-    });
+    const res = await fetch(
+      config.provider === "openai"
+        ? "https://api.openai.com/v1/chat/completions"
+        : "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers:
+          config.provider === "openai"
+            ? {
+                Authorization: `Bearer ${config.apiKey}`,
+                "Content-Type": "application/json",
+              }
+            : {
+                Authorization: `Bearer ${config.apiKey}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": process.env.BETTER_AUTH_URL || "http://localhost:3001",
+              },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "user",
+              content: `Generate a very short title (max 6 words) for a CRM conversation that starts with this message. Return only the title, no quotes or punctuation:\n\n${userMessage}`,
+            },
+          ],
+          max_tokens: 20,
+        }),
+      }
+    );
 
     if (!res.ok) return "New conversation";
 
@@ -627,18 +654,28 @@ export async function getConversationMessages(conversationId: string) {
 
 // ─── OpenRouter Streaming ────────────────────────────────────────────
 
-export async function callOpenRouter(
+export async function callAIProvider(
   config: AIConfig,
   messages: OpenRouterMessage[],
   stream = true
 ) {
-  return fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const url =
+    config.provider === "openai"
+      ? "https://api.openai.com/v1/chat/completions"
+      : "https://openrouter.ai/api/v1/chat/completions";
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${config.apiKey}`,
+    "Content-Type": "application/json",
+  };
+
+  if (config.provider === "openrouter") {
+    headers["HTTP-Referer"] = process.env.BETTER_AUTH_URL || "http://localhost:3001";
+  }
+
+  return fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": process.env.BETTER_AUTH_URL || "http://localhost:3001",
-    },
+    headers,
     body: JSON.stringify({
       model: config.model,
       messages,

@@ -7,7 +7,7 @@ import {
   saveMessage,
   getConversation,
   toolHandlers,
-  callOpenRouter,
+  callAIProvider,
 } from "@/services/ai-chat";
 import { db } from "@/db";
 import { messages, conversations } from "@/db/schema";
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
     .set({ updatedAt: new Date() })
     .where(eq(conversations.id, conversationId));
 
-  // Continue streaming with OpenRouter
+  // Continue streaming with configured AI provider
   const systemPrompt = await buildSystemPrompt(ctx.workspaceId);
   const historyMessages = await buildConversationMessages(conversationId);
   const openRouterMessages = [
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function streamContinuation(
-  config: { apiKey: string; model: string },
+  config: { provider: "openrouter" | "openai"; apiKey: string; model: string },
   openRouterMessages: Array<{ role: string; content?: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string }>,
   conversationId: string,
   toolCtx: { workspaceId: string; userId: string },
@@ -148,9 +148,9 @@ async function streamContinuation(
     return;
   }
 
-  const res = await callOpenRouter(config, openRouterMessages as Parameters<typeof callOpenRouter>[1], true);
+  const res = await callAIProvider(config, openRouterMessages as Parameters<typeof callAIProvider>[1], true);
   if (!res.ok) {
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: `OpenRouter error: ${res.status}` })}\n\n`));
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: `AI provider error: ${res.status}` })}\n\n`));
     return;
   }
 

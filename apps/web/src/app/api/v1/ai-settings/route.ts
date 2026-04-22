@@ -5,8 +5,11 @@ import { workspaces } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 interface WorkspaceSettings {
+  aiProvider?: "openrouter" | "openai";
   openrouterApiKey?: string;
   openrouterModel?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -21,9 +24,18 @@ export async function GET(req: NextRequest) {
 
   const settings = (workspace?.settings ?? {}) as WorkspaceSettings;
 
+  const provider = settings.aiProvider || "openrouter";
+
   return success({
-    model: settings.openrouterModel || "anthropic/claude-sonnet-4",
-    hasApiKey: !!settings.openrouterApiKey,
+    provider,
+    model:
+      provider === "openai"
+        ? settings.openaiModel || "gpt-4o"
+        : settings.openrouterModel || "anthropic/claude-sonnet-4",
+    hasApiKey:
+      provider === "openai"
+        ? !!settings.openaiApiKey
+        : !!settings.openrouterApiKey,
   });
 }
 
@@ -35,10 +47,14 @@ export async function PATCH(req: NextRequest) {
   if (adminCheck) return adminCheck;
 
   const body = await req.json();
-  const { apiKey, model } = body as { apiKey?: string; model?: string };
+  const { provider, apiKey, model } = body as {
+    provider?: "openrouter" | "openai";
+    apiKey?: string;
+    model?: string;
+  };
 
-  if (!apiKey && !model) {
-    return badRequest("Provide apiKey or model");
+  if (!provider && !apiKey && !model) {
+    return badRequest("Provide provider, apiKey, or model");
   }
 
   const [workspace] = await db
@@ -50,8 +66,16 @@ export async function PATCH(req: NextRequest) {
   const current = (workspace?.settings ?? {}) as WorkspaceSettings;
   const updated: WorkspaceSettings = { ...current };
 
-  if (apiKey !== undefined) updated.openrouterApiKey = apiKey;
-  if (model !== undefined) updated.openrouterModel = model;
+  const nextProvider = provider || current.aiProvider || "openrouter";
+  updated.aiProvider = nextProvider;
+
+  if (nextProvider === "openai") {
+    if (apiKey !== undefined) updated.openaiApiKey = apiKey;
+    if (model !== undefined) updated.openaiModel = model;
+  } else {
+    if (apiKey !== undefined) updated.openrouterApiKey = apiKey;
+    if (model !== undefined) updated.openrouterModel = model;
+  }
 
   await db
     .update(workspaces)
@@ -59,7 +83,14 @@ export async function PATCH(req: NextRequest) {
     .where(eq(workspaces.id, ctx.workspaceId));
 
   return success({
-    model: updated.openrouterModel || "anthropic/claude-sonnet-4",
-    hasApiKey: !!updated.openrouterApiKey,
+    provider: nextProvider,
+    model:
+      nextProvider === "openai"
+        ? updated.openaiModel || "gpt-4o"
+        : updated.openrouterModel || "anthropic/claude-sonnet-4",
+    hasApiKey:
+      nextProvider === "openai"
+        ? !!updated.openaiApiKey
+        : !!updated.openrouterApiKey,
   });
 }

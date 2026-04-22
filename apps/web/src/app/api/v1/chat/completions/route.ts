@@ -9,7 +9,7 @@ import {
   generateTitle,
   toolHandlers,
   toolDefinitions,
-  callOpenRouter,
+  callAIProvider,
 } from "@/services/ai-chat";
 import { db } from "@/db";
 import { conversations, messages } from "@/db/schema";
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   const config = await getAIConfig(ctx.workspaceId);
   if (!config) {
-    return badRequest("AI not configured. Set your OpenRouter API key in Settings > AI Agent.");
+    return badRequest("AI not configured. Set your AI provider and API key in Settings > AI Agent.");
   }
 
   // Save user message
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     .set({ updatedAt: new Date() })
     .where(eq(conversations.id, conversationId));
 
-  // Build messages for OpenRouter
+  // Build messages for configured AI provider
   const systemPrompt = await buildSystemPrompt(ctx.workspaceId);
   const historyMessages = await buildConversationMessages(conversationId);
   const openRouterMessages = [
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   // Fire-and-forget title generation on first user message
   const messageCount = historyMessages.filter((m) => m.role === "user").length;
   if (messageCount === 1) {
-    generateTitle(config.apiKey, config.model, message).then((title) => {
+    generateTitle(config, message).then((title) => {
       db.update(conversations)
         .set({ title })
         .where(eq(conversations.id, conversationId))
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function streamCompletion(
-  config: { apiKey: string; model: string },
+  config: { provider: "openrouter" | "openai"; apiKey: string; model: string },
   openRouterMessages: Array<{ role: string; content?: string | null; tool_calls?: unknown[]; tool_call_id?: string; name?: string }>,
   conversationId: string,
   toolCtx: { workspaceId: string; userId: string },
@@ -109,10 +109,10 @@ async function streamCompletion(
     return;
   }
 
-  const res = await callOpenRouter(config, openRouterMessages as Parameters<typeof callOpenRouter>[1], true);
+  const res = await callAIProvider(config, openRouterMessages as Parameters<typeof callAIProvider>[1], true);
   if (!res.ok) {
     const errBody = await res.text();
-    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: `OpenRouter error: ${res.status}` })}\n\n`));
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", error: `AI provider error: ${res.status}` })}\n\n`));
     return;
   }
 

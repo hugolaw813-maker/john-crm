@@ -5,8 +5,11 @@ import { workspaces } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 interface WorkspaceSettings {
+  aiProvider?: "openrouter" | "openai";
   openrouterApiKey?: string;
   openrouterModel?: string;
+  openaiApiKey?: string;
+  openaiModel?: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -14,10 +17,14 @@ export async function POST(req: NextRequest) {
   if (!ctx) return unauthorized();
 
   const body = await req.json();
-  let { apiKey, model } = body as { apiKey?: string; model?: string };
+  let { provider, apiKey, model } = body as {
+    provider?: "openrouter" | "openai";
+    apiKey?: string;
+    model?: string;
+  };
 
   // If no key provided in request, use the stored one
-  if (!apiKey) {
+  if (!apiKey || !provider || !model) {
     const [workspace] = await db
       .select({ settings: workspaces.settings })
       .from(workspaces)
@@ -25,24 +32,41 @@ export async function POST(req: NextRequest) {
       .limit(1);
 
     const settings = (workspace?.settings ?? {}) as WorkspaceSettings;
-    apiKey = settings.openrouterApiKey;
-    if (!model) model = settings.openrouterModel;
+    provider = provider || settings.aiProvider || "openrouter";
+    if (provider === "openai") {
+      apiKey = apiKey || settings.openaiApiKey;
+      model = model || settings.openaiModel || "gpt-4o";
+    } else {
+      apiKey = apiKey || settings.openrouterApiKey;
+      model = model || settings.openrouterModel || "anthropic/claude-sonnet-4";
+    }
   }
 
   if (!apiKey) {
     return badRequest("No API key configured");
   }
 
-  if (!model) model = "anthropic/claude-sonnet-4";
+  if (!provider) provider = "openrouter";
+  if (!model) model = provider === "openai" ? "gpt-4o" : "anthropic/claude-sonnet-4";
 
   try {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.BETTER_AUTH_URL || "http://localhost:3001",
-      },
+    const res = await fetch(
+      provider === "openai"
+        ? "https://api.openai.com/v1/chat/completions"
+        : "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers:
+          provider === "openai"
+            ? {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+              }
+            : {
+                Authorization: `Bearer ${apiKey}`,
+                "Content-Type": "application/json",
+                "HTTP-Referer": process.env.BETTER_AUTH_URL || "http://localhost:3001",
+              },
       body: JSON.stringify({
         model,
         messages: [{ role: "user", content: "Say hello in one word." }],
