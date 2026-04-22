@@ -1,6 +1,11 @@
 import { db } from "@/db";
 import { objects, attributes, selectOptions, statuses } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
+
+function normalizeObjectSlug(slug: string) {
+  if (slug === "groups") return "companies";
+  return slug;
+}
 
 export async function listObjects(workspaceId: string) {
   return db
@@ -11,10 +16,16 @@ export async function listObjects(workspaceId: string) {
 }
 
 export async function getObjectBySlug(workspaceId: string, slug: string) {
+  const normalizedSlug = normalizeObjectSlug(slug);
   const rows = await db
     .select()
     .from(objects)
-    .where(and(eq(objects.workspaceId, workspaceId), eq(objects.slug, slug)))
+    .where(
+      and(
+        eq(objects.workspaceId, workspaceId),
+        or(eq(objects.slug, normalizedSlug), eq(objects.slug, slug))
+      )
+    )
     .limit(1);
 
   return rows[0] ?? null;
