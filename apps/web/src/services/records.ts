@@ -291,7 +291,7 @@ async function enrichCompanyRecordsWithMembers(
     .where(eq(objects.id, objectId))
     .limit(1);
 
-  if (!currentObject || currentObject.slug !== "groups") {
+  if (!currentObject || (currentObject.slug !== "groups" && currentObject.slug !== "companies")) {
     return flatRecords;
   }
 
