@@ -37,7 +37,7 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
           <div className="min-w-0 flex-1 pt-0.5">
             <p className="text-sm">{activity.title}</p>
             {activity.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+              <p className="mt-0.5 text-xs leading-[1.45] text-muted-foreground line-clamp-2 whitespace-pre-wrap break-words">
                 {activity.description}
               </p>
             )}

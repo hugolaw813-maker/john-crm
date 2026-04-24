@@ -6,6 +6,27 @@ import { db } from "@/db";
 import { notes, tasks, taskRecords } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 
+function getContentPreview(content: unknown): string | undefined {
+  if (!content) return undefined;
+  try {
+    const doc = content as { content?: Array<{ content?: Array<{ text?: string }> }> };
+    if (doc.content) {
+      for (const block of doc.content) {
+        if (block.content) {
+          for (const inline of block.content) {
+            if (inline.text && inline.text.trim()) {
+              return inline.text.trim().slice(0, 180);
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // ignore malformed content
+  }
+  return undefined;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string; recordId: string }> }
@@ -58,7 +79,7 @@ export async function GET(
       id: `note-${note.id}`,
       type: "note" as const,
       title: note.title || "Untitled note",
-      description: note.content ? "Note added" : undefined,
+      description: getContentPreview(note.content),
       createdAt: note.createdAt.toISOString(),
       createdBy: note.createdBy,
     })),
